@@ -1,0 +1,263 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "AdminOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidAccount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "RequestAlreadyExists",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "RoleAlreadyGranted",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "RoleNotGranted",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "approvedBy",
+						"type": "address"
+					}
+				],
+				"name": "RoleApproved",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					}
+				],
+				"name": "RoleRequested",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "revokedBy",
+						"type": "address"
+					}
+				],
+				"name": "RoleRevoked",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "admin",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					}
+				],
+				"name": "approveRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					}
+				],
+				"name": "hasRole",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					}
+				],
+				"name": "requestRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					}
+				],
+				"name": "revokeRole",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					},
+					{
+						"internalType": "enum IRoleRegistry.Role",
+						"name": "role",
+						"type": "uint8"
+					}
+				],
+				"name": "roleRequested",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "requested",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"RoleRegistry.sol": "RoleRegistry"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"RoleRegistry.sol": {
+			"keccak256": "0x432d94a02be013c2d874e2eda07c39cb2b123593252641e0556f9b81c62d38a6",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://bec655f5c431f85e58194776df73deea745a1c7e6b170e00c74977d615855f18",
+				"dweb:/ipfs/QmaRLLtUuaBpy7bLyAuToFm16WhJWMd7zHeCrXHooY91Mt"
+			]
+		},
+		"interfaces/IRoleRegistry.sol": {
+			"keccak256": "0x3df1abbdefdd9197c467a16a2e87747a908c22002f7ea15414376df570e62a88",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6e17732b770ab711490847fcf3ccfa882062aba33b165139f0ef4a48b7d2f695",
+				"dweb:/ipfs/QmWGMQ7suoKmPq5RhL7NBRoNoNeSMR5azwnXXmvqhLcDjK"
+			]
+		}
+	},
+	"version": 1
+}

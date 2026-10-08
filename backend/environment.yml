@@ -1,0 +1,14 @@
+name: sme-receivables
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - Flask>=3.1,<4
+      - Flask-Cors>=5,<7
+      - Flask-SQLAlchemy>=3.1,<4
+      - python-dotenv>=1,<2
+      - web3>=7,<8
+      - pytest>=8,<10
+      - gunicorn>=23,<24

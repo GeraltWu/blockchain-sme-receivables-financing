@@ -1,0 +1,504 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "roleRegistryAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "invoiceRegistryAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "financingMarketAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address payable",
+						"name": "treasuryAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "uint16",
+						"name": "feeBps",
+						"type": "uint16"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "AlreadyFunded",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "AlreadySettled",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "BuyerOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "DirectTransferDisabled",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "FunderOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "FundingWindowExpired",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "expected",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "actual",
+						"type": "uint256"
+					}
+				],
+				"name": "IncorrectEthValue",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InsolventTerms",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidAddress",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidFee",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidStatus",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "ReentrancyGuardReentrantCall",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "recipient",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "TransferFailed",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "funder",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "principal",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "holdback",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "supplierUpfront",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "interest",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingFunded",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "buyer",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "paidAmount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "funderPayment",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "platformFee",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "supplierFinalPayment",
+						"type": "uint256"
+					}
+				],
+				"name": "InvoiceRepaid",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "financingIdByInvoice",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "financingMarket",
+				"outputs": [
+					{
+						"internalType": "contract IFinancingMarket",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "fundFinancing",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "getFunding",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "financingId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "invoiceId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "address",
+								"name": "supplier",
+								"type": "address"
+							},
+							{
+								"internalType": "address",
+								"name": "buyer",
+								"type": "address"
+							},
+							{
+								"internalType": "address",
+								"name": "funder",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "principal",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "holdback",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "interest",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "platformFee",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "faceValue",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint64",
+								"name": "fundedAt",
+								"type": "uint64"
+							},
+							{
+								"internalType": "bool",
+								"name": "settled",
+								"type": "bool"
+							}
+						],
+						"internalType": "struct FinancingPool.Funding",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "invoiceRegistry",
+				"outputs": [
+					{
+						"internalType": "contract IInvoiceRegistry",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "platformFeeBps",
+				"outputs": [
+					{
+						"internalType": "uint16",
+						"name": "",
+						"type": "uint16"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "repayInvoice",
+				"outputs": [],
+				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "roleRegistry",
+				"outputs": [
+					{
+						"internalType": "contract IRoleRegistry",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "treasury",
+				"outputs": [
+					{
+						"internalType": "address payable",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		],
+		"devdoc": {
+			"errors": {
+				"ReentrancyGuardReentrantCall()": [
+					{
+						"details": "Unauthorized reentrant call."
+					}
+				]
+			},
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"FinancingPool.sol": "FinancingPool"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/utils/ReentrancyGuard.sol": {
+			"keccak256": "0xa516cbf1c7d15d3517c2d668601ce016c54395bf5171918a14e2686977465f53",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1e1d079e8edfb58efd23a311e315a4807b01b5d1cf153f8fa2d0608b9dec3e99",
+				"dweb:/ipfs/QmTBExeX2SDTkn5xbk5ssbYSx7VqRp9H4Ux1CY4uQM4b9N"
+			]
+		},
+		"@openzeppelin/contracts/utils/StorageSlot.sol": {
+			"keccak256": "0xcf74f855663ce2ae00ed8352666b7935f6cddea2932fdf2c3ecd30a9b1cd0e97",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://9f660b1f351b757dfe01438e59888f31f33ded3afcf5cb5b0d9bf9aa6f320a8b",
+				"dweb:/ipfs/QmarDJ5hZEgBtCmmrVzEZWjub9769eD686jmzb2XpSU1cM"
+			]
+		},
+		"FinancingPool.sol": {
+			"keccak256": "0x4d5904c3559991732df6ec5a89f228195ff036ff5b6dec3b2e97d7cb71a4f606",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c78597aa7c0c43462795b1f42b9d52cd4020ea83872a81bf391c4704c4222ea2",
+				"dweb:/ipfs/QmZszZ7DK9VefUJ89qMArRWtF1dvJ2yUWk1VkFi9Z2mno3"
+			]
+		},
+		"interfaces/IFinancingMarket.sol": {
+			"keccak256": "0x324366f7f0049fa411b5e6a02b4539bee68dfc339b890875255c28f22348dd3c",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://2c19366baedecc5d47bc42cc2cc94d26e442d557b10125206e492c84b10ae75a",
+				"dweb:/ipfs/QmTdRYdXn3mfejg8RmFQF7HHUJ7uDvSrvHmRjsEkqweo2F"
+			]
+		},
+		"interfaces/IInvoiceRegistry.sol": {
+			"keccak256": "0x3827095437a300fbd92082b109dcbba83b5bcb201784e576b55a3b4ab1c37139",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://64f68be8b022af691399fc39ad30d9ea21256690616dfed9505679a37d25d683",
+				"dweb:/ipfs/QmbQtkZBgs75z2v2TCiDkkbKCAcVm7dN2LkDHHn2UCRkp5"
+			]
+		},
+		"interfaces/IRoleRegistry.sol": {
+			"keccak256": "0x3df1abbdefdd9197c467a16a2e87747a908c22002f7ea15414376df570e62a88",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6e17732b770ab711490847fcf3ccfa882062aba33b165139f0ef4a48b7d2f695",
+				"dweb:/ipfs/QmWGMQ7suoKmPq5RhL7NBRoNoNeSMR5azwnXXmvqhLcDjK"
+			]
+		}
+	},
+	"version": 1
+}

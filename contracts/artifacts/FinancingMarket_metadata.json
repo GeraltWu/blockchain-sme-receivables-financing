@@ -1,0 +1,807 @@
+{
+	"compiler": {
+		"version": "0.8.34+commit.80d5c536"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "roleRegistryAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "invoiceRegistryAddress",
+						"type": "address"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "AdminOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "FinancingNotFound",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "FunderConflict",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "FundingWindowActive",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidAddress",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidAmount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidDeadline",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "enum IFinancingMarket.FinancingStatus",
+						"name": "expected",
+						"type": "uint8"
+					},
+					{
+						"internalType": "enum IFinancingMarket.FinancingStatus",
+						"name": "actual",
+						"type": "uint8"
+					}
+				],
+				"name": "InvalidFinancingStatus",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidHoldback",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "enum IFinancingMarket.OfferStatus",
+						"name": "expected",
+						"type": "uint8"
+					},
+					{
+						"internalType": "enum IFinancingMarket.OfferStatus",
+						"name": "actual",
+						"type": "uint8"
+					}
+				],
+				"name": "InvalidOfferStatus",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidRate",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "MissingRole",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "OfferNotFound",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "PoolOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "SupplierOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "TooManyOffers",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "AcceptedOfferExpired",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingCancelled",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingExpired",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingFunded",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "supplier",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "principal",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint16",
+						"name": "maxRateBps",
+						"type": "uint16"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint16",
+						"name": "holdbackBps",
+						"type": "uint16"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint64",
+						"name": "deadline",
+						"type": "uint64"
+					}
+				],
+				"name": "FinancingOpened",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "financingPool",
+						"type": "address"
+					}
+				],
+				"name": "FinancingPoolConfigured",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingSettled",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "funder",
+						"type": "address"
+					}
+				],
+				"name": "OfferAccepted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "funder",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint16",
+						"name": "rateBps",
+						"type": "uint16"
+					}
+				],
+				"name": "OfferSubmitted",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "OfferWithdrawn",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "FUNDING_WINDOW",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "MAX_OFFERS_PER_REQUEST",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					}
+				],
+				"name": "acceptOffer",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "cancelFinancing",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "pool",
+						"type": "address"
+					}
+				],
+				"name": "configurePool",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "expireAcceptedOffer",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "expireFinancing",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "financingCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "financingPool",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "getFinancing",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "id",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "invoiceId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "address",
+								"name": "supplier",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "principal",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint16",
+								"name": "maxRateBps",
+								"type": "uint16"
+							},
+							{
+								"internalType": "uint16",
+								"name": "holdbackBps",
+								"type": "uint16"
+							},
+							{
+								"internalType": "uint64",
+								"name": "deadline",
+								"type": "uint64"
+							},
+							{
+								"internalType": "uint64",
+								"name": "acceptedAt",
+								"type": "uint64"
+							},
+							{
+								"internalType": "uint256",
+								"name": "acceptedOfferId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "enum IFinancingMarket.FinancingStatus",
+								"name": "status",
+								"type": "uint8"
+							}
+						],
+						"internalType": "struct IFinancingMarket.FinancingView",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					}
+				],
+				"name": "getOffer",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "id",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "financingId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "address",
+								"name": "funder",
+								"type": "address"
+							},
+							{
+								"internalType": "uint16",
+								"name": "rateBps",
+								"type": "uint16"
+							},
+							{
+								"internalType": "enum IFinancingMarket.OfferStatus",
+								"name": "status",
+								"type": "uint8"
+							}
+						],
+						"internalType": "struct IFinancingMarket.OfferView",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "getOfferIds",
+				"outputs": [
+					{
+						"internalType": "uint256[]",
+						"name": "",
+						"type": "uint256[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "invoiceRegistry",
+				"outputs": [
+					{
+						"internalType": "contract IInvoiceRegistry",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "markFunded",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "markSettled",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "offerCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "principal",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint16",
+						"name": "maxRateBps",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint16",
+						"name": "holdbackBps",
+						"type": "uint16"
+					},
+					{
+						"internalType": "uint64",
+						"name": "deadline",
+						"type": "uint64"
+					}
+				],
+				"name": "openFinancing",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "roleRegistry",
+				"outputs": [
+					{
+						"internalType": "contract IRoleRegistry",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint16",
+						"name": "rateBps",
+						"type": "uint16"
+					}
+				],
+				"name": "submitOffer",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "offerId",
+						"type": "uint256"
+					}
+				],
+				"name": "withdrawOffer",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"FinancingMarket.sol": "FinancingMarket"
+		},
+		"evmVersion": "osaka",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"FinancingMarket.sol": {
+			"keccak256": "0x367337d1ae29696f986514acfe79c4d4dc44849033315e6a7f23b07c92bb96d7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://08af6cb254b2ca5a889681d97b9e80019a8545274eebb8d0af5cd568f6f16e32",
+				"dweb:/ipfs/Qmatw9tbaEwSM52t3QuGYu3STGL4BTWnsviVRhCmcLR1ky"
+			]
+		},
+		"interfaces/IFinancingMarket.sol": {
+			"keccak256": "0x324366f7f0049fa411b5e6a02b4539bee68dfc339b890875255c28f22348dd3c",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://2c19366baedecc5d47bc42cc2cc94d26e442d557b10125206e492c84b10ae75a",
+				"dweb:/ipfs/QmTdRYdXn3mfejg8RmFQF7HHUJ7uDvSrvHmRjsEkqweo2F"
+			]
+		},
+		"interfaces/IInvoiceRegistry.sol": {
+			"keccak256": "0x3827095437a300fbd92082b109dcbba83b5bcb201784e576b55a3b4ab1c37139",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://64f68be8b022af691399fc39ad30d9ea21256690616dfed9505679a37d25d683",
+				"dweb:/ipfs/QmbQtkZBgs75z2v2TCiDkkbKCAcVm7dN2LkDHHn2UCRkp5"
+			]
+		},
+		"interfaces/IRoleRegistry.sol": {
+			"keccak256": "0x3df1abbdefdd9197c467a16a2e87747a908c22002f7ea15414376df570e62a88",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6e17732b770ab711490847fcf3ccfa882062aba33b165139f0ef4a48b7d2f695",
+				"dweb:/ipfs/QmWGMQ7suoKmPq5RhL7NBRoNoNeSMR5azwnXXmvqhLcDjK"
+			]
+		}
+	},
+	"version": 1
+}
