@@ -5,7 +5,6 @@ frontend/.env
 
 # Backend
 backend/.env
-backend/instance/
 backend/**/__pycache__/
 backend/.pytest_cache/
 .pytest_cache/
