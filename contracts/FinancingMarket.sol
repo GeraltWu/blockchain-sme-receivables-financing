@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {IRoleRegistry} from "./interfaces/IRoleRegistry.sol";
 import {IInvoiceRegistry} from "./interfaces/IInvoiceRegistry.sol";
 import {IFinancingMarket} from "./interfaces/IFinancingMarket.sol";
+import {IDisputeResolution} from "./interfaces/IDisputeResolution.sol";
 
 contract FinancingMarket is IFinancingMarket {
     uint256 public constant MAX_OFFERS_PER_REQUEST = 20;
@@ -12,15 +13,20 @@ contract FinancingMarket is IFinancingMarket {
     IRoleRegistry public immutable roleRegistry;
     IInvoiceRegistry public immutable invoiceRegistry;
     address public financingPool;
+    address public disputeResolution;
     uint256 public financingCount;
     uint256 public offerCount;
 
     mapping(uint256 financingId => FinancingView financing) private _financings;
     mapping(uint256 offerId => OfferView offer) private _offers;
     mapping(uint256 financingId => uint256[] offerIds) private _offerIds;
+    mapping(uint256 invoiceId => uint256 financingId) public override financingIdByInvoice;
+    mapping(uint256 invoiceId => mapping(address account => bool participated)) private _funderParticipants;
 
     error AdminOnly();
     error PoolOnly();
+    error DisputeOnly();
+    error OperationsFrozen();
     error MissingRole();
     error InvalidAddress();
     error InvalidAmount();
@@ -37,6 +43,7 @@ contract FinancingMarket is IFinancingMarket {
     error FundingWindowActive();
 
     event FinancingPoolConfigured(address indexed financingPool);
+    event DisputeResolutionConfigured(address indexed disputeResolution);
     event FinancingOpened(
         uint256 indexed financingId,
         uint256 indexed invoiceId,
@@ -59,6 +66,8 @@ contract FinancingMarket is IFinancingMarket {
     event AcceptedOfferExpired(uint256 indexed offerId, uint256 indexed financingId);
     event FinancingFunded(uint256 indexed financingId, uint256 indexed invoiceId);
     event FinancingSettled(uint256 indexed financingId, uint256 indexed invoiceId);
+    event FinancingOverdue(uint256 indexed financingId, uint256 indexed invoiceId);
+    event FinancingDefaulted(uint256 indexed financingId, uint256 indexed invoiceId);
 
     constructor(address roleRegistryAddress, address invoiceRegistryAddress) {
         if (roleRegistryAddress == address(0) || invoiceRegistryAddress == address(0)) {
@@ -78,10 +87,21 @@ contract FinancingMarket is IFinancingMarket {
         _;
     }
 
+    modifier onlyDispute() {
+        if (msg.sender != disputeResolution) revert DisputeOnly();
+        _;
+    }
+
     function configurePool(address pool) external onlyAdmin {
         if (pool == address(0)) revert InvalidAddress();
         financingPool = pool;
         emit FinancingPoolConfigured(pool);
+    }
+
+    function configureDisputeResolution(address dispute) external onlyAdmin {
+        if (dispute == address(0)) revert InvalidAddress();
+        disputeResolution = dispute;
+        emit DisputeResolutionConfigured(dispute);
     }
 
     function openFinancing(
@@ -93,6 +113,7 @@ contract FinancingMarket is IFinancingMarket {
     ) external returns (uint256 financingId) {
         if (!roleRegistry.hasRole(msg.sender, IRoleRegistry.Role.Supplier)) revert MissingRole();
         IInvoiceRegistry.InvoiceView memory invoice = invoiceRegistry.getInvoice(invoiceId);
+        _requireNotFrozen(invoiceId);
         if (invoice.supplier != msg.sender) revert SupplierOnly();
         if (invoice.status != IInvoiceRegistry.InvoiceStatus.Confirmed) {
             revert InvalidFinancingStatus(FinancingStatus.Open, FinancingStatus.None);
@@ -115,6 +136,7 @@ contract FinancingMarket is IFinancingMarket {
             acceptedOfferId: 0,
             status: FinancingStatus.Open
         });
+        financingIdByInvoice[invoiceId] = financingId;
         invoiceRegistry.markFinancingOpen(invoiceId);
         emit FinancingOpened(
             financingId,
@@ -129,6 +151,7 @@ contract FinancingMarket is IFinancingMarket {
 
     function cancelFinancing(uint256 financingId) external {
         FinancingView storage financing = _financing(financingId);
+        _requireNotFrozen(financing.invoiceId);
         if (financing.supplier != msg.sender) revert SupplierOnly();
         _requireFinancingStatus(financing, FinancingStatus.Open);
         financing.status = FinancingStatus.Cancelled;
@@ -139,6 +162,7 @@ contract FinancingMarket is IFinancingMarket {
 
     function expireFinancing(uint256 financingId) external {
         FinancingView storage financing = _financing(financingId);
+        _requireNotFrozen(financing.invoiceId);
         _requireFinancingStatus(financing, FinancingStatus.Open);
         if (block.timestamp <= financing.deadline) revert InvalidDeadline();
         financing.status = FinancingStatus.Expired;
@@ -150,6 +174,7 @@ contract FinancingMarket is IFinancingMarket {
     function submitOffer(uint256 financingId, uint16 rateBps) external returns (uint256 offerId) {
         if (!roleRegistry.hasRole(msg.sender, IRoleRegistry.Role.Funder)) revert MissingRole();
         FinancingView storage financing = _financing(financingId);
+        _requireNotFrozen(financing.invoiceId);
         _requireFinancingStatus(financing, FinancingStatus.Open);
         if (block.timestamp >= financing.deadline) revert InvalidDeadline();
         if (msg.sender == financing.supplier) revert FunderConflict();
@@ -165,11 +190,13 @@ contract FinancingMarket is IFinancingMarket {
             status: OfferStatus.Active
         });
         _offerIds[financingId].push(offerId);
+        _funderParticipants[financing.invoiceId][msg.sender] = true;
         emit OfferSubmitted(offerId, financingId, msg.sender, rateBps);
     }
 
     function withdrawOffer(uint256 offerId) external {
         OfferView storage offer = _offer(offerId);
+        _requireNotFrozen(_financings[offer.financingId].invoiceId);
         if (offer.funder != msg.sender) revert FunderConflict();
         _requireOfferStatus(offer, OfferStatus.Active);
         offer.status = OfferStatus.Expired;
@@ -178,6 +205,7 @@ contract FinancingMarket is IFinancingMarket {
 
     function acceptOffer(uint256 financingId, uint256 offerId) external {
         FinancingView storage financing = _financing(financingId);
+        _requireNotFrozen(financing.invoiceId);
         if (financing.supplier != msg.sender) revert SupplierOnly();
         _requireFinancingStatus(financing, FinancingStatus.Open);
         if (block.timestamp >= financing.deadline) revert InvalidDeadline();
@@ -195,6 +223,7 @@ contract FinancingMarket is IFinancingMarket {
 
     function expireAcceptedOffer(uint256 financingId) external {
         FinancingView storage financing = _financing(financingId);
+        _requireNotFrozen(financing.invoiceId);
         _requireFinancingStatus(financing, FinancingStatus.OfferAccepted);
         if (block.timestamp <= uint256(financing.acceptedAt) + FUNDING_WINDOW) {
             revert FundingWindowActive();
@@ -224,11 +253,58 @@ contract FinancingMarket is IFinancingMarket {
         emit FinancingFunded(financingId, financing.invoiceId);
     }
 
-    function markSettled(uint256 financingId) external override onlyPool {
+    function markOverdue(uint256 financingId) external override onlyPool {
         FinancingView storage financing = _financing(financingId);
         _requireFinancingStatus(financing, FinancingStatus.Funded);
+        financing.status = FinancingStatus.Overdue;
+        emit FinancingOverdue(financingId, financing.invoiceId);
+    }
+
+    function markSettled(uint256 financingId) external override onlyPool {
+        FinancingView storage financing = _financing(financingId);
+        if (
+            financing.status != FinancingStatus.Funded &&
+            financing.status != FinancingStatus.Overdue
+        ) revert InvalidFinancingStatus(FinancingStatus.Funded, financing.status);
         financing.status = FinancingStatus.Settled;
         emit FinancingSettled(financingId, financing.invoiceId);
+    }
+
+    function markDefaulted(uint256 financingId) external override onlyPool {
+        FinancingView storage financing = _financing(financingId);
+        if (
+            financing.status != FinancingStatus.Funded &&
+            financing.status != FinancingStatus.Overdue
+        ) revert InvalidFinancingStatus(FinancingStatus.Funded, financing.status);
+        financing.status = FinancingStatus.Defaulted;
+        emit FinancingDefaulted(financingId, financing.invoiceId);
+    }
+
+    function cancelByDispute(uint256 invoiceId) external override onlyDispute {
+        uint256 financingId = financingIdByInvoice[invoiceId];
+        FinancingView storage financing = _financing(financingId);
+        if (
+            financing.status != FinancingStatus.Open &&
+            financing.status != FinancingStatus.OfferAccepted
+        ) revert InvalidFinancingStatus(FinancingStatus.Open, financing.status);
+
+        if (financing.acceptedOfferId != 0) {
+            OfferView storage acceptedOffer = _offers[financing.acceptedOfferId];
+            if (acceptedOffer.status == OfferStatus.Accepted) {
+                acceptedOffer.status = OfferStatus.Expired;
+            }
+        }
+        financing.status = FinancingStatus.Cancelled;
+        _expireActiveOffers(financingId);
+        invoiceRegistry.restoreConfirmed(invoiceId);
+        emit FinancingCancelled(financingId);
+    }
+
+    function isFunderParticipant(
+        uint256 invoiceId,
+        address account
+    ) external view override returns (bool) {
+        return _funderParticipants[invoiceId][account];
     }
 
     function getFinancing(uint256 financingId) external view override returns (FinancingView memory) {
@@ -277,5 +353,12 @@ contract FinancingMarket is IFinancingMarket {
             OfferView storage offer = _offers[ids[i]];
             if (offer.status == OfferStatus.Active) offer.status = OfferStatus.Expired;
         }
+    }
+
+    function _requireNotFrozen(uint256 invoiceId) private view {
+        if (
+            disputeResolution != address(0) &&
+            IDisputeResolution(disputeResolution).operationsFrozen(invoiceId)
+        ) revert OperationsFrozen();
     }
 }

@@ -5,10 +5,13 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IRoleRegistry} from "./interfaces/IRoleRegistry.sol";
 import {IInvoiceRegistry} from "./interfaces/IInvoiceRegistry.sol";
 import {IFinancingMarket} from "./interfaces/IFinancingMarket.sol";
+import {IDisputeResolution} from "./interfaces/IDisputeResolution.sol";
+import {IFinancingPool} from "./interfaces/IFinancingPool.sol";
 
-contract FinancingPool is ReentrancyGuard {
+contract FinancingPool is ReentrancyGuard, IFinancingPool {
     uint256 private constant BPS_DENOMINATOR = 10_000;
     uint256 private constant DAYS_PER_YEAR = 365;
+    uint256 public constant GRACE_PERIOD = 3 days;
 
     struct Funding {
         uint256 financingId;
@@ -23,6 +26,11 @@ contract FinancingPool is ReentrancyGuard {
         uint256 faceValue;
         uint64 fundedAt;
         bool settled;
+        uint64 overdueAt;
+        bool repaymentDeposited;
+        bool defaulted;
+        uint256 principalLoss;
+        uint256 unpaidInterest;
     }
 
     IRoleRegistry public immutable roleRegistry;
@@ -30,6 +38,7 @@ contract FinancingPool is ReentrancyGuard {
     IFinancingMarket public immutable financingMarket;
     address payable public immutable treasury;
     uint16 public immutable platformFeeBps;
+    address public disputeResolution;
 
     mapping(uint256 financingId => Funding funding) private _fundings;
     mapping(uint256 invoiceId => uint256 financingId) public financingIdByInvoice;
@@ -46,6 +55,12 @@ contract FinancingPool is ReentrancyGuard {
     error AlreadySettled();
     error TransferFailed(address recipient, uint256 amount);
     error DirectTransferDisabled();
+    error AdminOnly();
+    error DisputeOnly();
+    error OperationsFrozen();
+    error TooEarly();
+    error UnauthorizedParticipant();
+    error RepaymentNotDeposited();
 
     event FinancingFunded(
         uint256 indexed financingId,
@@ -64,6 +79,26 @@ contract FinancingPool is ReentrancyGuard {
         uint256 funderPayment,
         uint256 platformFee,
         uint256 supplierFinalPayment
+    );
+    event DisputeResolutionConfigured(address indexed disputeResolution);
+    event InvoiceMarkedOverdue(
+        uint256 indexed financingId,
+        uint256 indexed invoiceId,
+        uint64 overdueAt
+    );
+    event RepaymentDeposited(
+        uint256 indexed financingId,
+        uint256 indexed invoiceId,
+        address indexed buyer,
+        uint256 amount
+    );
+    event FinancingDefaulted(
+        uint256 indexed financingId,
+        uint256 indexed invoiceId,
+        address indexed funder,
+        uint256 holdbackReturned,
+        uint256 principalLoss,
+        uint256 unpaidInterest
     );
 
     constructor(
@@ -87,9 +122,26 @@ contract FinancingPool is ReentrancyGuard {
         platformFeeBps = feeBps;
     }
 
+    modifier onlyAdmin() {
+        if (msg.sender != roleRegistry.admin()) revert AdminOnly();
+        _;
+    }
+
+    modifier onlyDispute() {
+        if (msg.sender != disputeResolution) revert DisputeOnly();
+        _;
+    }
+
+    function configureDisputeResolution(address dispute) external onlyAdmin {
+        if (dispute == address(0)) revert InvalidAddress();
+        disputeResolution = dispute;
+        emit DisputeResolutionConfigured(dispute);
+    }
+
     function fundFinancing(uint256 financingId) external payable nonReentrant {
         if (_fundings[financingId].financingId != 0) revert AlreadyFunded();
         IFinancingMarket.FinancingView memory financing = financingMarket.getFinancing(financingId);
+        _requireNotFrozen(financing.invoiceId);
         if (financing.status != IFinancingMarket.FinancingStatus.OfferAccepted) revert InvalidStatus();
         if (block.timestamp > uint256(financing.acceptedAt) + 24 hours) revert FundingWindowExpired();
 
@@ -127,7 +179,12 @@ contract FinancingPool is ReentrancyGuard {
             platformFee: fee,
             faceValue: invoice.faceValue,
             fundedAt: uint64(block.timestamp),
-            settled: false
+            settled: false,
+            overdueAt: 0,
+            repaymentDeposited: false,
+            defaulted: false,
+            principalLoss: 0,
+            unpaidInterest: 0
         });
         financingIdByInvoice[financing.invoiceId] = financingId;
 
@@ -151,11 +208,77 @@ contract FinancingPool is ReentrancyGuard {
         Funding storage funding = _fundings[financingId];
         if (funding.financingId == 0) revert InvalidStatus();
         if (funding.settled) revert AlreadySettled();
+        if (funding.defaulted || funding.repaymentDeposited) revert InvalidStatus();
         if (msg.sender != funding.buyer) revert BuyerOnly();
         if (msg.value != funding.faceValue) {
             revert IncorrectEthValue(funding.faceValue, msg.value);
         }
 
+        if (_isFrozen(invoiceId)) {
+            funding.repaymentDeposited = true;
+            invoiceRegistry.markRepaymentDeposited(invoiceId);
+            emit RepaymentDeposited(financingId, invoiceId, msg.sender, msg.value);
+            return;
+        }
+
+        _settle(funding, msg.sender);
+    }
+
+    function finalizeSettlement(uint256 invoiceId) external override nonReentrant {
+        uint256 financingId = financingIdByInvoice[invoiceId];
+        Funding storage funding = _fundings[financingId];
+        if (!funding.repaymentDeposited) revert RepaymentNotDeposited();
+        if (_isFrozen(invoiceId)) revert OperationsFrozen();
+        _settle(funding, funding.buyer);
+    }
+
+    function markOverdue(uint256 invoiceId) external {
+        uint256 financingId = financingIdByInvoice[invoiceId];
+        Funding storage funding = _fundings[financingId];
+        _requireParticipant(funding);
+        _requireNotFrozen(invoiceId);
+        if (funding.financingId == 0 || funding.settled || funding.defaulted) revert InvalidStatus();
+        if (block.timestamp <= invoiceRegistry.getInvoice(invoiceId).dueAt) revert TooEarly();
+        if (funding.overdueAt != 0) revert InvalidStatus();
+
+        funding.overdueAt = uint64(block.timestamp);
+        financingMarket.markOverdue(financingId);
+        invoiceRegistry.markOverdue(invoiceId);
+        emit InvoiceMarkedOverdue(financingId, invoiceId, funding.overdueAt);
+    }
+
+    function declareDefault(uint256 invoiceId) external nonReentrant {
+        uint256 financingId = financingIdByInvoice[invoiceId];
+        Funding storage funding = _fundings[financingId];
+        _requireParticipant(funding);
+        _requireNotFrozen(invoiceId);
+        if (funding.financingId == 0 || funding.settled || funding.defaulted) revert InvalidStatus();
+        if (funding.repaymentDeposited) revert InvalidStatus();
+        if (block.timestamp <= uint256(invoiceRegistry.getInvoice(invoiceId).dueAt) + GRACE_PERIOD) {
+            revert TooEarly();
+        }
+        _defaultFunding(funding);
+    }
+
+    function confirmDefaultByDispute(uint256 invoiceId) external override onlyDispute nonReentrant {
+        uint256 financingId = financingIdByInvoice[invoiceId];
+        Funding storage funding = _fundings[financingId];
+        if (
+            funding.financingId == 0 ||
+            funding.settled ||
+            funding.defaulted ||
+            funding.repaymentDeposited
+        ) revert InvalidStatus();
+        _defaultFunding(funding);
+    }
+
+    function getFunding(uint256 financingId) external view returns (Funding memory) {
+        Funding memory funding = _fundings[financingId];
+        if (funding.financingId == 0) revert InvalidStatus();
+        return funding;
+    }
+
+    function _settle(Funding storage funding, address buyer) private {
         uint256 funderPayment = funding.principal + funding.interest;
         uint256 supplierFinalPayment =
             funding.faceValue +
@@ -164,17 +287,18 @@ contract FinancingPool is ReentrancyGuard {
             funding.platformFee;
 
         funding.settled = true;
-        financingMarket.markSettled(financingId);
-        invoiceRegistry.markRepaid(invoiceId);
+        funding.repaymentDeposited = false;
+        financingMarket.markSettled(funding.financingId);
+        invoiceRegistry.markRepaid(funding.invoiceId);
 
         _sendEth(payable(funding.funder), funderPayment);
         _sendEth(treasury, funding.platformFee);
         _sendEth(payable(funding.supplier), supplierFinalPayment);
 
         emit InvoiceRepaid(
-            financingId,
-            invoiceId,
-            msg.sender,
+            funding.financingId,
+            funding.invoiceId,
+            buyer,
             funding.faceValue,
             funderPayment,
             funding.platformFee,
@@ -182,10 +306,41 @@ contract FinancingPool is ReentrancyGuard {
         );
     }
 
-    function getFunding(uint256 financingId) external view returns (Funding memory) {
-        Funding memory funding = _fundings[financingId];
-        if (funding.financingId == 0) revert InvalidStatus();
-        return funding;
+    function _defaultFunding(Funding storage funding) private {
+        funding.defaulted = true;
+        funding.principalLoss = funding.principal - funding.holdback;
+        funding.unpaidInterest = funding.interest;
+        financingMarket.markDefaulted(funding.financingId);
+        invoiceRegistry.markDefaulted(funding.invoiceId);
+
+        uint256 holdbackReturned = funding.holdback;
+        _sendEth(payable(funding.funder), holdbackReturned);
+        emit FinancingDefaulted(
+            funding.financingId,
+            funding.invoiceId,
+            funding.funder,
+            holdbackReturned,
+            funding.principalLoss,
+            funding.unpaidInterest
+        );
+    }
+
+    function _requireParticipant(Funding storage funding) private view {
+        if (
+            msg.sender != funding.supplier &&
+            msg.sender != funding.buyer &&
+            msg.sender != funding.funder
+        ) revert UnauthorizedParticipant();
+    }
+
+    function _isFrozen(uint256 invoiceId) private view returns (bool) {
+        return
+            disputeResolution != address(0) &&
+            IDisputeResolution(disputeResolution).operationsFrozen(invoiceId);
+    }
+
+    function _requireNotFrozen(uint256 invoiceId) private view {
+        if (_isFrozen(invoiceId)) revert OperationsFrozen();
     }
 
     function _sendEth(address payable recipient, uint256 amount) private {

@@ -20,19 +20,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "financingId",
-        "type": "uint256"
-      }
-    ],
-    "name": "cancelFinancing",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
         "name": "roleRegistryAddress",
         "type": "address"
@@ -54,6 +41,45 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "cancelByDispute",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      }
+    ],
+    "name": "cancelFinancing",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dispute",
+        "type": "address"
+      }
+    ],
+    "name": "configureDisputeResolution",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "pool",
         "type": "address"
@@ -63,6 +89,11 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "DisputeOnly",
+    "type": "error"
   },
   {
     "inputs": [
@@ -170,7 +201,33 @@
         "type": "uint256"
       }
     ],
+    "name": "markDefaulted",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      }
+    ],
     "name": "markFunded",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      }
+    ],
+    "name": "markOverdue",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -239,6 +296,11 @@
   },
   {
     "inputs": [],
+    "name": "OperationsFrozen",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "PoolOnly",
     "type": "error"
   },
@@ -276,12 +338,44 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "address",
+        "name": "disputeResolution",
+        "type": "address"
+      }
+    ],
+    "name": "DisputeResolutionConfigured",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
         "internalType": "uint256",
         "name": "financingId",
         "type": "uint256"
       }
     ],
     "name": "FinancingCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "FinancingDefaulted",
     "type": "event"
   },
   {
@@ -363,6 +457,25 @@
       }
     ],
     "name": "FinancingOpened",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "FinancingOverdue",
     "type": "event"
   },
   {
@@ -511,11 +624,43 @@
   },
   {
     "inputs": [],
+    "name": "disputeResolution",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "financingCount",
     "outputs": [
       {
         "internalType": "uint256",
         "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "financingIdByInvoice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "financingId",
         "type": "uint256"
       }
     ],
@@ -692,6 +837,30 @@
         "internalType": "contract IInvoiceRegistry",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "isFunderParticipant",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",

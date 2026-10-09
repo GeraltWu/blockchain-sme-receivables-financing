@@ -33,6 +33,17 @@ export interface InvoiceMetadata {
   issuedAt: string
   dueAt: string
   documentHash: string
+  onchainInvoiceId?: string
+  submitTxHash?: string
+  createdAt: string
+}
+
+interface StoredTransaction {
+  txHash: string
+  wallet: string
+  contractName: string
+  action: string
+  status: 'confirmed' | 'failed'
   createdAt: string
 }
 
@@ -79,6 +90,10 @@ export async function verifySignature(address: string, message: string, signatur
   return result
 }
 
+export async function getCurrentSession() {
+  return request<{ wallet: string }>('/auth/me')
+}
+
 export async function saveInvoiceMetadata(payload: {
   invoiceNumber: string
   buyer: string
@@ -87,7 +102,7 @@ export async function saveInvoiceMetadata(payload: {
   dueAt: string
   documentHash: string
 }) {
-  return request('/invoices/metadata', {
+  return request<{ data: InvoiceMetadata }>('/invoices/metadata', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -97,10 +112,14 @@ export async function listInvoiceMetadata() {
   return request<{ data: InvoiceMetadata[] }>('/invoices/metadata')
 }
 
-export async function verifyTransaction(hash: string, contract: string, action: string) {
+export async function verifyTransaction(hash: string, contract: string, action: string, metadataId?: string) {
   return request('/transactions/verify', {
     method: 'POST',
-    body: JSON.stringify({ txHash: hash, contractName: contract, action }),
+    body: JSON.stringify({ txHash: hash, contractName: contract, action, metadataId }),
   })
+}
+
+export async function listTransactions() {
+  return request<{ data: StoredTransaction[] }>('/transactions')
 }
 

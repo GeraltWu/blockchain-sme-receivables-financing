@@ -9,7 +9,10 @@ interface IInvoiceRegistry {
         Confirmed,
         FinancingOpen,
         Funded,
-        Repaid
+        Repaid,
+        Overdue,
+        RepaymentDeposited,
+        Defaulted
     }
 
     struct InvoiceView {
@@ -28,5 +31,8 @@ interface IInvoiceRegistry {
     function markFinancingOpen(uint256 invoiceId) external;
     function restoreConfirmed(uint256 invoiceId) external;
     function markFunded(uint256 invoiceId) external;
+    function markOverdue(uint256 invoiceId) external;
+    function markRepaymentDeposited(uint256 invoiceId) external;
     function markRepaid(uint256 invoiceId) external;
+    function markDefaulted(uint256 invoiceId) external;
 }

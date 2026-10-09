@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { BrowserProvider, type Eip1193Provider, type JsonRpcSigner } from 'ethers'
 import { SEPOLIA_CHAIN_HEX, SEPOLIA_CHAIN_ID } from '../config/contracts'
-import { clearStoredToken, requestNonce, verifySignature } from '../services/api'
+import { clearStoredToken, getCurrentSession, getStoredToken, requestNonce, verifySignature } from '../services/api'
 
 interface WalletState {
   address: string
   chainId?: bigint
   signer?: JsonRpcSigner
+  balance?: bigint
   authenticated: boolean
   busy: boolean
   error?: string
@@ -39,17 +40,31 @@ export function useWallet() {
 
     const provider = new BrowserProvider(ethereum)
     const signer = await provider.getSigner(accounts[0])
-    const network = await provider.getNetwork()
+    const [network, balance] = await Promise.all([
+      provider.getNetwork(),
+      provider.getBalance(signer.address),
+    ])
+    let authenticated = false
+    if (getStoredToken()) {
+      try {
+        const session = await getCurrentSession()
+        authenticated = session.wallet.toLowerCase() === signer.address.toLowerCase()
+        if (!authenticated) clearStoredToken()
+      } catch {
+        clearStoredToken()
+      }
+    }
     setState((current) => ({
       ...current,
       address: signer.address,
       chainId: network.chainId,
       signer,
-      authenticated: false,
+      balance,
+      authenticated,
       busy: false,
       error: undefined,
     }))
-    return { signer, address: signer.address, chainId: network.chainId }
+    return { signer, address: signer.address, chainId: network.chainId, authenticated }
   }, [])
 
   const authenticate = useCallback(async (signer: JsonRpcSigner, address: string) => {
@@ -78,7 +93,6 @@ export function useWallet() {
     }
 
     const handleChainChanged = () => {
-      clearStoredToken()
       void syncWallet(ethereum).catch((error) => {
         setState((current) => ({ ...current, authenticated: false, busy: false, error: errorMessage(error) }))
       })
@@ -103,9 +117,8 @@ export function useWallet() {
     setState((current) => ({ ...current, busy: true, error: undefined }))
     try {
       await ethereum.request({ method: 'eth_requestAccounts' })
-      clearStoredToken()
       const connected = await syncWallet(ethereum)
-      if (connected?.chainId === SEPOLIA_CHAIN_ID) {
+      if (connected?.chainId === SEPOLIA_CHAIN_ID && !connected.authenticated) {
         await authenticate(connected.signer, connected.address)
       }
     } catch (error) {
@@ -119,9 +132,8 @@ export function useWallet() {
     setState((current) => ({ ...current, busy: true, error: undefined }))
     try {
       await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: SEPOLIA_CHAIN_HEX }] })
-      clearStoredToken()
       const connected = await syncWallet(ethereum)
-      if (connected?.chainId === SEPOLIA_CHAIN_ID) {
+      if (connected?.chainId === SEPOLIA_CHAIN_ID && !connected.authenticated) {
         await authenticate(connected.signer, connected.address)
       }
     } catch (error) {
@@ -144,6 +156,18 @@ export function useWallet() {
     setState((current) => ({ ...current, authenticated: false }))
   }, [])
 
+  const refreshBalance = useCallback(async () => {
+    if (!state.signer || !state.address) return
+    try {
+      const balance = await state.signer.provider.getBalance(state.address)
+      setState((current) => current.address.toLowerCase() === state.address.toLowerCase()
+        ? { ...current, balance }
+        : current)
+    } catch {
+      // The next wallet or protocol refresh will retry without interrupting the user.
+    }
+  }, [state.address, state.signer])
+
   return {
     ...state,
     isSepolia: state.chainId === SEPOLIA_CHAIN_ID,
@@ -151,6 +175,7 @@ export function useWallet() {
     switchToSepolia,
     signIn,
     signOut,
+    refreshBalance,
   }
 }
 
@@ -165,7 +190,15 @@ export function errorMessage(error: unknown) {
     info?: { error?: { data?: unknown; message?: unknown } }
   }
 
+  if (providerError.code === 'APP_REJECTED') return 'Transaction cancelled before opening MetaMask.'
   if (isUserRejectedError(error)) return 'Request cancelled in MetaMask.'
+  if (
+    providerError.code === -32601
+    && typeof providerError.message === 'string'
+    && providerError.message.includes('eth_maxPriorityFeePerGas')
+  ) {
+    return 'The selected MetaMask RPC does not support EIP-1559 fee queries. Switch to a standard Sepolia RPC and try again.'
+  }
   const contractError = decodeContractError(providerError)
   if (contractError) return contractError
   if (providerError.code === 'INSUFFICIENT_FUNDS') {
@@ -186,7 +219,7 @@ export function errorMessage(error: unknown) {
 export function isUserRejectedError(error: unknown) {
   const value = error as { code?: unknown; message?: unknown }
   const message = typeof value?.message === 'string' ? value.message.toLowerCase() : ''
-  return value?.code === 4001 || value?.code === 'ACTION_REJECTED' || message.includes('user rejected')
+  return value?.code === 4001 || value?.code === 'ACTION_REJECTED' || value?.code === 'APP_REJECTED' || message.includes('user rejected')
 }
 
 function cleanErrorMessage(message: string) {

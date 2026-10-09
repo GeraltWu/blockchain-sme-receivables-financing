@@ -11,21 +11,24 @@ const contractLabels: Record<ContractName, string> = {
   invoiceRegistry: 'Invoice Registry',
   financingMarket: 'Financing Market',
   financingPool: 'Financing Pool',
+  disputeResolution: 'Dispute Resolution',
 }
 
 export function TransactionsPage({ transactions }: TransactionsPageProps) {
   return (
     <Stack gap="lg">
-      <PageHeader eyebrow="Activity" title="Transactions" description="Follow wallet requests and confirmed Sepolia transactions from this session." />
+      <PageHeader eyebrow="Activity" title="Transactions" description="Follow wallet requests and verified Sepolia transaction history." />
       {transactions.length === 0 ? (
-        <Paper radius="lg" p="xl" withBorder ta="center">
-          <Text fw={700}>No transactions yet</Text>
-          <Text size="sm" c="dimmed" mt={4}>Your role, invoice, and financing actions will appear here.</Text>
+        <Paper radius="lg" withBorder ta="center" className="compact-empty">
+          <Stack gap={2}>
+            <Text fw={700}>No transactions yet</Text>
+            <Text size="sm" c="dimmed">Your role, invoice, and financing actions will appear here.</Text>
+          </Stack>
         </Paper>
       ) : (
         <Stack gap="sm">
           {transactions.map((transaction) => (
-            <Paper key={transaction.id} radius="lg" p="lg" withBorder className="transaction-card record-card">
+            <Paper key={transaction.id} radius="lg" p="md" withBorder className="transaction-card record-card">
               <Group justify="space-between" align="flex-start" wrap="nowrap">
                 <div className="transaction-main">
                   <Text fw={700}>{transaction.action}</Text>

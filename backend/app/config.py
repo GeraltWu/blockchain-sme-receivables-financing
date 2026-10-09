@@ -19,4 +19,5 @@ class Config:
         "invoiceRegistry": os.getenv("INVOICE_REGISTRY_ADDRESS", ""),
         "financingMarket": os.getenv("FINANCING_MARKET_ADDRESS", ""),
         "financingPool": os.getenv("FINANCING_POOL_ADDRESS", ""),
+        "disputeResolution": os.getenv("DISPUTE_RESOLUTION_ADDRESS", ""),
     }

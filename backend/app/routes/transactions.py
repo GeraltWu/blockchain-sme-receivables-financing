@@ -5,7 +5,8 @@ from web3.exceptions import TransactionNotFound
 from ..auth import require_auth
 from ..errors import api_error
 from ..extensions import db
-from ..models import TransactionRecord
+from ..invoice_keys import invoice_key
+from ..models import InvoiceMetadata, TransactionRecord
 
 transactions_bp = Blueprint("transactions", __name__, url_prefix="/api/transactions")
 
@@ -17,6 +18,7 @@ def verify_transaction():
     tx_hash = str(payload.get("txHash", ""))
     contract_name = str(payload.get("contractName", ""))
     action = str(payload.get("action", ""))
+    metadata_id = str(payload.get("metadataId", ""))
     if not Web3.is_address(g.wallet_address) or len(tx_hash) != 66:
         return api_error("VALIDATION_ERROR", "Provide a valid transaction hash.", 400)
 
@@ -58,6 +60,20 @@ def verify_transaction():
         )
 
     status = "confirmed" if receipt["status"] == 1 else "failed"
+    metadata = None
+    if metadata_id:
+        if not metadata_id.isdigit():
+            return api_error("INVALID_METADATA", "Invoice metadata reference is invalid.", 400)
+        metadata = db.session.get(InvoiceMetadata, int(metadata_id))
+        if metadata is None or metadata.wallet_address != g.wallet_address:
+            return api_error("INVALID_METADATA", "Invoice metadata is not available for this wallet.", 404)
+        if contract_name != "invoiceRegistry" or action != "Submit invoice":
+            return api_error("INVALID_METADATA", "Invoice metadata can only be linked to an invoice submission.", 422)
+        if status != "confirmed":
+            return api_error("TRANSACTION_FAILED", "A failed transaction cannot be linked to invoice metadata.", 422)
+        link_error = _link_invoice_metadata(web3, receipt, expected_checksum, metadata, tx_hash)
+        if link_error is not None:
+            return link_error
     record = db.session.execute(
         db.select(TransactionRecord).where(TransactionRecord.tx_hash == tx_hash)
     ).scalar_one_or_none()
@@ -77,6 +93,53 @@ def verify_transaction():
         record.block_number = receipt["blockNumber"]
     db.session.commit()
     return jsonify({"data": record.to_dict()})
+
+
+def _link_invoice_metadata(web3, receipt, registry_address, metadata, tx_hash):
+    event_topic = Web3.keccak(
+        text="InvoiceSubmitted(uint256,bytes32,address,address,uint256)"
+    ).hex().lower()
+    matching_log = next(
+        (
+            log
+            for log in receipt["logs"]
+            if Web3.to_checksum_address(log["address"]) == registry_address
+            and len(log["topics"]) == 4
+            and log["topics"][0].hex().lower() == event_topic
+        ),
+        None,
+    )
+    if matching_log is None:
+        return api_error("INVOICE_EVENT_MISSING", "The invoice submission event was not found.", 422)
+
+    invoice_id = int.from_bytes(matching_log["topics"][1], byteorder="big")
+    event_invoice_key = matching_log["topics"][2].hex().lower()
+    supplier = Web3.to_checksum_address("0x" + matching_log["topics"][3].hex()[-40:])
+    buyer, face_value = web3.codec.decode(["address", "uint256"], matching_log["data"])
+    buyer = Web3.to_checksum_address(buyer)
+    expected_key = invoice_key(
+        current_app.config["CHAIN_ID"],
+        metadata.wallet_address,
+        metadata.buyer_address,
+        metadata.invoice_number,
+        metadata.issued_at,
+    ).hex().lower()
+    if (
+        supplier != metadata.wallet_address
+        or buyer != metadata.buyer_address
+        or str(face_value) != metadata.face_value_wei
+        or event_invoice_key != expected_key
+    ):
+        return api_error(
+            "INVOICE_METADATA_MISMATCH",
+            "Saved invoice details do not match the confirmed on-chain invoice.",
+            422,
+        )
+    if metadata.submit_tx_hash and metadata.submit_tx_hash.lower() != tx_hash.lower():
+        return api_error("METADATA_ALREADY_LINKED", "This invoice metadata is already linked.", 409)
+    metadata.onchain_invoice_id = str(invoice_id)
+    metadata.submit_tx_hash = tx_hash
+    return None
 
 
 @transactions_bp.get("")

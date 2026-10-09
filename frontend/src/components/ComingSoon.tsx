@@ -10,7 +10,7 @@ export function ComingSoon({ title, description }: ComingSoonProps) {
   return (
     <>
       <PageHeader eyebrow="Planned module" title={title} description={description} badge="Coming soon" />
-      <Paper className="empty-panel" radius="lg" p="xl" withBorder>
+      <Paper className="empty-panel" radius="lg" p="md" withBorder>
         <Center>
           <Stack align="center" gap="xs" ta="center">
             <ThemeIcon size={48} radius="xl" color="gray" variant="light">···</ThemeIcon>

@@ -8,6 +8,7 @@ contract InvoiceRegistry is IInvoiceRegistry {
     IRoleRegistry public immutable roleRegistry;
     address public financingMarket;
     address public financingPool;
+    address public disputeResolution;
     uint256 public invoiceCount;
 
     mapping(uint256 invoiceId => InvoiceView invoice) private _invoices;
@@ -26,7 +27,11 @@ contract InvoiceRegistry is IInvoiceRegistry {
     error BuyerOnly();
     error InvalidStatus(InvoiceStatus expected, InvoiceStatus actual);
 
-    event OperatorsConfigured(address indexed financingMarket, address indexed financingPool);
+    event OperatorsConfigured(
+        address indexed financingMarket,
+        address indexed financingPool,
+        address indexed disputeResolution
+    );
     event InvoiceSubmitted(
         uint256 indexed invoiceId,
         bytes32 indexed invoiceKey,
@@ -58,11 +63,14 @@ contract InvoiceRegistry is IInvoiceRegistry {
         _;
     }
 
-    function configureOperators(address market, address pool) external onlyAdmin {
-        if (market == address(0) || pool == address(0)) revert InvalidAddress();
+    function configureOperators(address market, address pool, address dispute) external onlyAdmin {
+        if (market == address(0) || pool == address(0) || dispute == address(0)) {
+            revert InvalidAddress();
+        }
         financingMarket = market;
         financingPool = pool;
-        emit OperatorsConfigured(market, pool);
+        disputeResolution = dispute;
+        emit OperatorsConfigured(market, pool, dispute);
     }
 
     function submitInvoice(
@@ -135,10 +143,36 @@ contract InvoiceRegistry is IInvoiceRegistry {
         _setStatus(invoice, InvoiceStatus.Funded);
     }
 
-    function markRepaid(uint256 invoiceId) external override onlyPool {
+    function markOverdue(uint256 invoiceId) external override onlyPool {
         InvoiceView storage invoice = _invoice(invoiceId);
         _requireStatus(invoice, InvoiceStatus.Funded);
+        _setStatus(invoice, InvoiceStatus.Overdue);
+    }
+
+    function markRepaymentDeposited(uint256 invoiceId) external override onlyPool {
+        InvoiceView storage invoice = _invoice(invoiceId);
+        if (invoice.status != InvoiceStatus.Funded && invoice.status != InvoiceStatus.Overdue) {
+            revert InvalidStatus(InvoiceStatus.Funded, invoice.status);
+        }
+        _setStatus(invoice, InvoiceStatus.RepaymentDeposited);
+    }
+
+    function markRepaid(uint256 invoiceId) external override onlyPool {
+        InvoiceView storage invoice = _invoice(invoiceId);
+        if (
+            invoice.status != InvoiceStatus.Funded &&
+            invoice.status != InvoiceStatus.Overdue &&
+            invoice.status != InvoiceStatus.RepaymentDeposited
+        ) revert InvalidStatus(InvoiceStatus.Funded, invoice.status);
         _setStatus(invoice, InvoiceStatus.Repaid);
+    }
+
+    function markDefaulted(uint256 invoiceId) external override onlyPool {
+        InvoiceView storage invoice = _invoice(invoiceId);
+        if (invoice.status != InvoiceStatus.Funded && invoice.status != InvoiceStatus.Overdue) {
+            revert InvalidStatus(InvoiceStatus.Funded, invoice.status);
+        }
+        _setStatus(invoice, InvoiceStatus.Defaulted);
     }
 
     function getInvoice(uint256 invoiceId) external view override returns (InvoiceView memory) {

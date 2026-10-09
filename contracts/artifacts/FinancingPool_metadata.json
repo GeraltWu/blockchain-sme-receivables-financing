@@ -38,6 +38,11 @@
 			},
 			{
 				"inputs": [],
+				"name": "AdminOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
 				"name": "AlreadyFunded",
 				"type": "error"
 			},
@@ -54,6 +59,11 @@
 			{
 				"inputs": [],
 				"name": "DirectTransferDisabled",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "DisputeOnly",
 				"type": "error"
 			},
 			{
@@ -104,7 +114,22 @@
 			},
 			{
 				"inputs": [],
+				"name": "OperationsFrozen",
+				"type": "error"
+			},
+			{
+				"inputs": [],
 				"name": "ReentrancyGuardReentrantCall",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "RepaymentNotDeposited",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "TooEarly",
 				"type": "error"
 			},
 			{
@@ -122,6 +147,67 @@
 				],
 				"name": "TransferFailed",
 				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "UnauthorizedParticipant",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "disputeResolution",
+						"type": "address"
+					}
+				],
+				"name": "DisputeResolutionConfigured",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "funder",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "holdbackReturned",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "principalLoss",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "unpaidInterest",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingDefaulted",
+				"type": "event"
 			},
 			{
 				"anonymous": false,
@@ -188,6 +274,31 @@
 						"type": "uint256"
 					},
 					{
+						"indexed": false,
+						"internalType": "uint64",
+						"name": "overdueAt",
+						"type": "uint64"
+					}
+				],
+				"name": "InvoiceMarkedOverdue",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
 						"indexed": true,
 						"internalType": "address",
 						"name": "buyer",
@@ -220,6 +331,115 @@
 				],
 				"name": "InvoiceRepaid",
 				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "buyer",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					}
+				],
+				"name": "RepaymentDeposited",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "GRACE_PERIOD",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "dispute",
+						"type": "address"
+					}
+				],
+				"name": "configureDisputeResolution",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "confirmDefaultByDispute",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "declareDefault",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "disputeResolution",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "finalizeSettlement",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
 			},
 			{
 				"inputs": [
@@ -337,6 +557,31 @@
 								"internalType": "bool",
 								"name": "settled",
 								"type": "bool"
+							},
+							{
+								"internalType": "uint64",
+								"name": "overdueAt",
+								"type": "uint64"
+							},
+							{
+								"internalType": "bool",
+								"name": "repaymentDeposited",
+								"type": "bool"
+							},
+							{
+								"internalType": "bool",
+								"name": "defaulted",
+								"type": "bool"
+							},
+							{
+								"internalType": "uint256",
+								"name": "principalLoss",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "unpaidInterest",
+								"type": "uint256"
 							}
 						],
 						"internalType": "struct FinancingPool.Funding",
@@ -358,6 +603,19 @@
 					}
 				],
 				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "markOverdue",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -468,27 +726,43 @@
 			]
 		},
 		"FinancingPool.sol": {
-			"keccak256": "0x4d5904c3559991732df6ec5a89f228195ff036ff5b6dec3b2e97d7cb71a4f606",
+			"keccak256": "0x08e2f18bfbe5bf332775b37a18769fc130d32b3a507aa8def633373cdd970790",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://c78597aa7c0c43462795b1f42b9d52cd4020ea83872a81bf391c4704c4222ea2",
-				"dweb:/ipfs/QmZszZ7DK9VefUJ89qMArRWtF1dvJ2yUWk1VkFi9Z2mno3"
+				"bzz-raw://1d6b97224fd0c61416a3571beac9a2196700935e110e54aefc009a0429a59e4e",
+				"dweb:/ipfs/QmfMCKcMUNkZ9AyUjiLwcN4FvEfp4PN8xCYMr4sS8N35mj"
+			]
+		},
+		"interfaces/IDisputeResolution.sol": {
+			"keccak256": "0xa9bcf91baae550755549b6ea20458861f3cfac782937e09a4cf8c10a7a7a278e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1f80f69d61c267b89ae35621f6d68758c5bf31dba8a1b4089ac0bd73fd975d57",
+				"dweb:/ipfs/QmcUybkg5WowCoTpxGUkgEG8Ns7sMWxmNnHKCmeo9d71RA"
 			]
 		},
 		"interfaces/IFinancingMarket.sol": {
-			"keccak256": "0x324366f7f0049fa411b5e6a02b4539bee68dfc339b890875255c28f22348dd3c",
+			"keccak256": "0x9fa3b5eef609e80147baf9e2d0e2c8d13ae1054a1e86cfb953bf5bf02347a0ed",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://2c19366baedecc5d47bc42cc2cc94d26e442d557b10125206e492c84b10ae75a",
-				"dweb:/ipfs/QmTdRYdXn3mfejg8RmFQF7HHUJ7uDvSrvHmRjsEkqweo2F"
+				"bzz-raw://11361be2d9efe6ee3df2f13374f9a0bce25a13641d734216b838ea275226cdc6",
+				"dweb:/ipfs/QmQdQKxJr2tJoxU5ZfJNaEJTkyTEEssKKR1uQzYgzuD2rw"
+			]
+		},
+		"interfaces/IFinancingPool.sol": {
+			"keccak256": "0x872df670053a4ee4293fedf9853f36df84449781210ce6c57a1192a754c2b327",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://2745e0fbb2a6b8196231ed2f8d4eb5182006474dfc390f006181bbd51625eb65",
+				"dweb:/ipfs/QmdNmbPqehpYe8HJafcadDLzLUSsSMxZDxgbDtsZ2cngmW"
 			]
 		},
 		"interfaces/IInvoiceRegistry.sol": {
-			"keccak256": "0x3827095437a300fbd92082b109dcbba83b5bcb201784e576b55a3b4ab1c37139",
+			"keccak256": "0xf600643b5725f7561c56f6543518e117d74afab9becad9362c345e75ca3a24a4",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://64f68be8b022af691399fc39ad30d9ea21256690616dfed9505679a37d25d683",
-				"dweb:/ipfs/QmbQtkZBgs75z2v2TCiDkkbKCAcVm7dN2LkDHHn2UCRkp5"
+				"bzz-raw://6e6a0f4c111fa9c040c177af0dbca98d8c59d450420488485d399d80ef21c6f5",
+				"dweb:/ipfs/QmbJB3gtGCJumQHxuSNovHqFjHxVPeu1FQGn7cZ4kGxwX8"
 			]
 		},
 		"interfaces/IRoleRegistry.sol": {

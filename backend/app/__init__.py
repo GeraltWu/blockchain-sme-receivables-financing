@@ -9,6 +9,7 @@ from .routes.auth import auth_bp
 from .routes.public import public_bp
 from .routes.invoices import invoices_bp
 from .routes.transactions import transactions_bp
+from .routes.protocol import protocol_bp
 
 
 def create_app(config_object: type[Config] = Config) -> Flask:
@@ -23,6 +24,7 @@ def create_app(config_object: type[Config] = Config) -> Flask:
     app.register_blueprint(auth_bp)
     app.register_blueprint(invoices_bp)
     app.register_blueprint(transactions_bp)
+    app.register_blueprint(protocol_bp)
 
     with app.app_context():
         db.create_all()

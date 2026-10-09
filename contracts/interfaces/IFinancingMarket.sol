@@ -9,7 +9,9 @@ interface IFinancingMarket {
         Funded,
         Settled,
         Cancelled,
-        Expired
+        Expired,
+        Overdue,
+        Defaulted
     }
 
     enum OfferStatus {
@@ -42,6 +44,11 @@ interface IFinancingMarket {
 
     function getFinancing(uint256 financingId) external view returns (FinancingView memory);
     function getOffer(uint256 offerId) external view returns (OfferView memory);
+    function financingIdByInvoice(uint256 invoiceId) external view returns (uint256);
+    function isFunderParticipant(uint256 invoiceId, address account) external view returns (bool);
     function markFunded(uint256 financingId) external;
+    function markOverdue(uint256 financingId) external;
     function markSettled(uint256 financingId) external;
+    function markDefaulted(uint256 financingId) external;
+    function cancelByDispute(uint256 invoiceId) external;
 }

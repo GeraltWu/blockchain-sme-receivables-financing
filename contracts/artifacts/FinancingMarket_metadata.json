@@ -28,6 +28,11 @@
 			},
 			{
 				"inputs": [],
+				"name": "DisputeOnly",
+				"type": "error"
+			},
+			{
+				"inputs": [],
 				"name": "FinancingNotFound",
 				"type": "error"
 			},
@@ -110,6 +115,11 @@
 			},
 			{
 				"inputs": [],
+				"name": "OperationsFrozen",
+				"type": "error"
+			},
+			{
+				"inputs": [],
 				"name": "PoolOnly",
 				"type": "error"
 			},
@@ -147,12 +157,44 @@
 				"inputs": [
 					{
 						"indexed": true,
+						"internalType": "address",
+						"name": "disputeResolution",
+						"type": "address"
+					}
+				],
+				"name": "DisputeResolutionConfigured",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
 						"internalType": "uint256",
 						"name": "financingId",
 						"type": "uint256"
 					}
 				],
 				"name": "FinancingCancelled",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingDefaulted",
 				"type": "event"
 			},
 			{
@@ -234,6 +276,25 @@
 					}
 				],
 				"name": "FinancingOpened",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "FinancingOverdue",
 				"type": "event"
 			},
 			{
@@ -391,11 +452,37 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "cancelByDispute",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
 						"name": "financingId",
 						"type": "uint256"
 					}
 				],
 				"name": "cancelFinancing",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "dispute",
+						"type": "address"
+					}
+				],
+				"name": "configureDisputeResolution",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -411,6 +498,19 @@
 				"name": "configurePool",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "disputeResolution",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -446,6 +546,25 @@
 					{
 						"internalType": "uint256",
 						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					}
+				],
+				"name": "financingIdByInvoice",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
 						"type": "uint256"
 					}
 				],
@@ -618,11 +737,61 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "isFunderParticipant",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "markDefaulted",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
 						"name": "financingId",
 						"type": "uint256"
 					}
 				],
 				"name": "markFunded",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "financingId",
+						"type": "uint256"
+					}
+				],
+				"name": "markOverdue",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -771,27 +940,35 @@
 	},
 	"sources": {
 		"FinancingMarket.sol": {
-			"keccak256": "0x367337d1ae29696f986514acfe79c4d4dc44849033315e6a7f23b07c92bb96d7",
+			"keccak256": "0xbcde2b34f3d50048ba167697ff7fde823d693d9095423c62fb1957517cc09a2b",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://08af6cb254b2ca5a889681d97b9e80019a8545274eebb8d0af5cd568f6f16e32",
-				"dweb:/ipfs/Qmatw9tbaEwSM52t3QuGYu3STGL4BTWnsviVRhCmcLR1ky"
+				"bzz-raw://e1fcee1dcd309666ecaa1a5b51b06e6791ff3b6e26c5e5cac16e5ebe3955bf62",
+				"dweb:/ipfs/QmfYU3Y6yLn4b1rfTgRTLGyH9frdFgu46Fd6AQFcDvjSQx"
+			]
+		},
+		"interfaces/IDisputeResolution.sol": {
+			"keccak256": "0xa9bcf91baae550755549b6ea20458861f3cfac782937e09a4cf8c10a7a7a278e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1f80f69d61c267b89ae35621f6d68758c5bf31dba8a1b4089ac0bd73fd975d57",
+				"dweb:/ipfs/QmcUybkg5WowCoTpxGUkgEG8Ns7sMWxmNnHKCmeo9d71RA"
 			]
 		},
 		"interfaces/IFinancingMarket.sol": {
-			"keccak256": "0x324366f7f0049fa411b5e6a02b4539bee68dfc339b890875255c28f22348dd3c",
+			"keccak256": "0x9fa3b5eef609e80147baf9e2d0e2c8d13ae1054a1e86cfb953bf5bf02347a0ed",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://2c19366baedecc5d47bc42cc2cc94d26e442d557b10125206e492c84b10ae75a",
-				"dweb:/ipfs/QmTdRYdXn3mfejg8RmFQF7HHUJ7uDvSrvHmRjsEkqweo2F"
+				"bzz-raw://11361be2d9efe6ee3df2f13374f9a0bce25a13641d734216b838ea275226cdc6",
+				"dweb:/ipfs/QmQdQKxJr2tJoxU5ZfJNaEJTkyTEEssKKR1uQzYgzuD2rw"
 			]
 		},
 		"interfaces/IInvoiceRegistry.sol": {
-			"keccak256": "0x3827095437a300fbd92082b109dcbba83b5bcb201784e576b55a3b4ab1c37139",
+			"keccak256": "0xf600643b5725f7561c56f6543518e117d74afab9becad9362c345e75ca3a24a4",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://64f68be8b022af691399fc39ad30d9ea21256690616dfed9505679a37d25d683",
-				"dweb:/ipfs/QmbQtkZBgs75z2v2TCiDkkbKCAcVm7dN2LkDHHn2UCRkp5"
+				"bzz-raw://6e6a0f4c111fa9c040c177af0dbca98d8c59d450420488485d399d80ef21c6f5",
+				"dweb:/ipfs/QmbJB3gtGCJumQHxuSNovHqFjHxVPeu1FQGn7cZ4kGxwX8"
 			]
 		},
 		"interfaces/IRoleRegistry.sol": {

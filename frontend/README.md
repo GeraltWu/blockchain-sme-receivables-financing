@@ -1,75 +1,39 @@
-# React + TypeScript + Vite
+# SME Receivables Financing Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19、TypeScript、Vite、Mantine 和 Ethers.js 6 实现的 Sepolia DApp。
 
-Currently, two official plugins are available:
+当前前端提供：
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- MetaMask 连接、Sepolia 网络检查和钱包签名登录；
+- Supplier、Buyer、Funder、Auditor、Arbitrator、Admin 多角色视图；
+- 发票创建与确认、融资申请与报价、放款与还款；
+- Overdue、Default、Holdback 结算；
+- 争议冻结、证据哈希、三种裁决和争议还款托管；
+- Auditor 状态汇总、资金流和链上事件时间线。
 
-## React Compiler
+业务状态直接从五个智能合约读取，后端不维护业务状态或事件镜像。后端只负责钱包会话、发票编号元数据、实时 RPC 查询接口和交易验证记录。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Run
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```powershell
+Copy-Item .env.example .env
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+开发环境中 Vite 将 `/api` 代理到 `http://127.0.0.1:5000`。启动前应确认 `.env` 中配置了当前部署的五个合约地址：
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `VITE_ROLE_REGISTRY_ADDRESS`
+- `VITE_INVOICE_REGISTRY_ADDRESS`
+- `VITE_FINANCING_MARKET_ADDRESS`
+- `VITE_FINANCING_POOL_ADDRESS`
+- `VITE_DISPUTE_RESOLUTION_ADDRESS`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Verify
 
+```powershell
+npm run lint
+npm run build
 ```
+
+Audit 页面会在浏览器中实时扫描合约事件。演示前建议使用稳定的 Sepolia RPC 并预先打开一次 Audit 页面。

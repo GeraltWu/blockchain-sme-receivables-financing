@@ -5,6 +5,7 @@ const fallbackAbis: Record<ContractName, InterfaceAbi> = {
   roleRegistry: [
     'event RoleRequested(address indexed account, uint8 indexed role)',
     'event RoleApproved(address indexed account, uint8 indexed role, address indexed approvedBy)',
+    'event RoleRevoked(address indexed account, uint8 indexed role, address indexed revokedBy)',
     'function requestRole(uint8 role)',
     'function approveRole(address account, uint8 role)',
     'function revokeRole(address account, uint8 role)',
@@ -16,6 +17,7 @@ const fallbackAbis: Record<ContractName, InterfaceAbi> = {
     'event InvoiceSubmitted(uint256 indexed invoiceId, bytes32 indexed invoiceKey, address indexed supplier, address buyer, uint256 faceValue)',
     'event InvoiceConfirmed(uint256 indexed invoiceId, address indexed buyer)',
     'event InvoiceRejected(uint256 indexed invoiceId, address indexed buyer)',
+    'event InvoiceStatusChanged(uint256 indexed invoiceId, uint8 status)',
     'function submitInvoice(address buyer, bytes32 invoiceNumberHash, uint256 faceValue, uint64 issuedAt, uint64 dueAt, bytes32 documentHash) returns (uint256)',
     'function confirmInvoice(uint256 invoiceId)',
     'function rejectInvoice(uint256 invoiceId)',
@@ -26,6 +28,14 @@ const fallbackAbis: Record<ContractName, InterfaceAbi> = {
     'event FinancingOpened(uint256 indexed financingId, uint256 indexed invoiceId, address indexed supplier, uint256 principal, uint16 maxRateBps, uint16 holdbackBps, uint64 deadline)',
     'event OfferSubmitted(uint256 indexed offerId, uint256 indexed financingId, address indexed funder, uint16 rateBps)',
     'event OfferAccepted(uint256 indexed offerId, uint256 indexed financingId, address indexed funder)',
+    'event FinancingCancelled(uint256 indexed financingId)',
+    'event FinancingExpired(uint256 indexed financingId)',
+    'event OfferWithdrawn(uint256 indexed offerId, uint256 indexed financingId)',
+    'event AcceptedOfferExpired(uint256 indexed offerId, uint256 indexed financingId)',
+    'event FinancingFunded(uint256 indexed financingId, uint256 indexed invoiceId)',
+    'event FinancingSettled(uint256 indexed financingId, uint256 indexed invoiceId)',
+    'event FinancingOverdue(uint256 indexed financingId, uint256 indexed invoiceId)',
+    'event FinancingDefaulted(uint256 indexed financingId, uint256 indexed invoiceId)',
     'function openFinancing(uint256 invoiceId, uint256 principal, uint16 maxRateBps, uint16 holdbackBps, uint64 deadline) returns (uint256)',
     'function submitOffer(uint256 financingId, uint16 rateBps) returns (uint256)',
     'function withdrawOffer(uint256 offerId)',
@@ -42,31 +52,38 @@ const fallbackAbis: Record<ContractName, InterfaceAbi> = {
   financingPool: [
     'event FinancingFunded(uint256 indexed financingId, uint256 indexed invoiceId, address indexed funder, uint256 principal, uint256 holdback, uint256 supplierUpfront, uint256 interest)',
     'event InvoiceRepaid(uint256 indexed financingId, uint256 indexed invoiceId, address indexed buyer, uint256 paidAmount, uint256 funderPayment, uint256 platformFee, uint256 supplierFinalPayment)',
+    'event InvoiceMarkedOverdue(uint256 indexed financingId, uint256 indexed invoiceId, uint64 overdueAt)',
+    'event RepaymentDeposited(uint256 indexed financingId, uint256 indexed invoiceId, address indexed buyer, uint256 amount)',
+    'event FinancingDefaulted(uint256 indexed financingId, uint256 indexed invoiceId, address indexed funder, uint256 holdbackReturned, uint256 principalLoss, uint256 unpaidInterest)',
     'function fundFinancing(uint256 financingId) payable',
     'function repayInvoice(uint256 invoiceId) payable',
-    'function getFunding(uint256 financingId) view returns (tuple(uint256 financingId,uint256 invoiceId,address supplier,address buyer,address funder,uint256 principal,uint256 holdback,uint256 interest,uint256 platformFee,uint256 faceValue,uint64 fundedAt,bool settled))',
+    'function finalizeSettlement(uint256 invoiceId)',
+    'function markOverdue(uint256 invoiceId)',
+    'function declareDefault(uint256 invoiceId)',
+    'function GRACE_PERIOD() view returns (uint256)',
+    'function platformFeeBps() view returns (uint16)',
+    'function getFunding(uint256 financingId) view returns (tuple(uint256 financingId,uint256 invoiceId,address supplier,address buyer,address funder,uint256 principal,uint256 holdback,uint256 interest,uint256 platformFee,uint256 faceValue,uint64 fundedAt,bool settled,uint64 overdueAt,bool repaymentDeposited,bool defaulted,uint256 principalLoss,uint256 unpaidInterest))',
+  ],
+  disputeResolution: [
+    'event DisputeOpened(uint256 indexed disputeId, uint256 indexed invoiceId, address indexed openedBy, bytes32 reasonHash)',
+    'event EvidenceSubmitted(uint256 indexed disputeId, uint256 indexed invoiceId, address indexed submitter, bytes32 evidenceHash)',
+    'event DisputeResolved(uint256 indexed disputeId, uint256 indexed invoiceId, address indexed arbitrator, uint8 ruling)',
+    'function openDispute(uint256 invoiceId, bytes32 reasonHash) returns (uint256)',
+    'function submitEvidenceHash(uint256 disputeId, bytes32 evidenceHash)',
+    'function resolveDispute(uint256 disputeId, uint8 ruling)',
+    'function operationsFrozen(uint256 invoiceId) view returns (bool)',
+    'function disputeCount() view returns (uint256)',
+    'function getDispute(uint256 disputeId) view returns (tuple(uint256 id,uint256 invoiceId,address openedBy,bytes32 reasonHash,uint8 status,uint8 ruling,uint64 openedAt,uint64 resolvedAt,address arbitrator))',
+    'function getEvidenceCount(uint256 disputeId) view returns (uint256)',
+    'function getEvidence(uint256 disputeId,uint256 evidenceIndex) view returns (tuple(address submitter,bytes32 evidenceHash,uint64 submittedAt))',
   ],
 }
 
-const compiledAbiFiles = import.meta.glob('./abi/*.json', {
-  eager: true,
-  import: 'default',
-}) as Record<string, unknown>
-
-function loadAbi(fileName: string, fallback: InterfaceAbi): InterfaceAbi {
-  const file = compiledAbiFiles[`./abi/${fileName}.json`]
-  if (Array.isArray(file)) return file as InterfaceAbi
-  if (file && typeof file === 'object' && 'abi' in file) {
-    const abi = (file as { abi?: unknown }).abi
-    if (Array.isArray(abi)) return abi as InterfaceAbi
-  }
-  return fallback
-}
-
 export const contractAbis: Record<ContractName, InterfaceAbi> = {
-  roleRegistry: loadAbi('RoleRegistry', fallbackAbis.roleRegistry),
-  invoiceRegistry: loadAbi('InvoiceRegistry', fallbackAbis.invoiceRegistry),
-  financingMarket: loadAbi('FinancingMarket', fallbackAbis.financingMarket),
-  financingPool: loadAbi('FinancingPool', fallbackAbis.financingPool),
+  roleRegistry: fallbackAbis.roleRegistry,
+  invoiceRegistry: fallbackAbis.invoiceRegistry,
+  financingMarket: fallbackAbis.financingMarket,
+  financingPool: fallbackAbis.financingPool,
+  disputeResolution: fallbackAbis.disputeResolution,
 }
 

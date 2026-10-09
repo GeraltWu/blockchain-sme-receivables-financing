@@ -13,6 +13,7 @@ interface AppLayoutProps {
   busy: boolean
   error?: string
   roleStates: Record<UserRole, RoleState>
+  availableRoles: UserRole[]
   feedback?: ActionFeedback
   onDismissFeedback: () => void
   onConnect: () => void
@@ -22,20 +23,16 @@ interface AppLayoutProps {
   children: React.ReactNode
 }
 
-const navigation: Array<{ key: PageKey; label: string; glyph: string }> = [
-  { key: 'home', label: 'Home', glyph: '⌂' },
-  { key: 'activity', label: 'Activity', glyph: '▤' },
-  { key: 'transactions', label: 'Transactions', glyph: '↗' },
-  { key: 'profile', label: 'Profile', glyph: '○' },
+type NavigationIconName = 'home' | 'activity' | 'transactions' | 'profile'
+
+const navigation: Array<{ key: PageKey; label: string; icon: NavigationIconName }> = [
+  { key: 'home', label: 'Home', icon: 'home' },
+  { key: 'activity', label: 'Activity', icon: 'activity' },
+  { key: 'transactions', label: 'Transactions', icon: 'transactions' },
+  { key: 'profile', label: 'Profile', icon: 'profile' },
 ]
 
 const roles: UserRole[] = ['Supplier', 'Buyer', 'Funder', 'Auditor', 'Arbitrator', 'Admin']
-
-const roleStateLabel: Record<RoleState, string> = {
-  active: 'Active',
-  pending: 'Pending',
-  inactive: 'Not active',
-}
 
 function compactAddress(address: string) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`
@@ -43,6 +40,7 @@ function compactAddress(address: string) {
 
 export function AppLayout(props: AppLayoutProps) {
   const [copied, setCopied] = useState(false)
+  const activeNavigationPage = props.page === 'roles' ? 'profile' : props.page
   const navigate = (key: PageKey) => {
     props.onNavigate(key)
   }
@@ -71,7 +69,8 @@ export function AppLayout(props: AppLayoutProps) {
 
   const roleOptions = roles.map((role) => ({
     value: role,
-    label: props.address ? `${role} · ${roleStateLabel[props.roleStates[role]]}` : role,
+    label: role,
+    disabled: Boolean(props.address) && !props.availableRoles.includes(role) && role !== props.role,
   }))
 
   return (
@@ -96,8 +95,16 @@ export function AppLayout(props: AppLayoutProps) {
               size="xs"
               value={props.role}
               data={roleOptions}
+              leftSection={props.address ? <RoleStatusDot active={props.roleStates[props.role] === 'active'} /> : undefined}
+              renderOption={({ option }) => (
+                <Group gap="xs" wrap="nowrap">
+                  <RoleStatusDot active={props.roleStates[option.value as UserRole] === 'active'} />
+                  <span>{option.label}</span>
+                </Group>
+              )}
               onChange={(value) => props.onRoleChange((value ?? 'Supplier') as UserRole)}
               allowDeselect={false}
+              disabled={!props.address}
             />
             <Badge color={props.isSepolia ? 'blue' : 'gray'} variant="light" visibleFrom="xs">Sepolia</Badge>
             {!props.address && <Button size="xs" onClick={props.onConnect} loading={props.busy}>Connect</Button>}
@@ -123,9 +130,9 @@ export function AppLayout(props: AppLayoutProps) {
             {navigation.map((item) => (
               <NavLink
                 key={item.key}
-                active={props.page === item.key}
+                active={activeNavigationPage === item.key}
                 label={item.label}
-                leftSection={<span className="nav-glyph">{item.glyph}</span>}
+                leftSection={<span className="nav-glyph"><NavigationIcon name={item.icon} /></span>}
                 onClick={() => navigate(item.key)}
                 className="nav-item"
               />
@@ -166,12 +173,43 @@ export function AppLayout(props: AppLayoutProps) {
 
       <Box className="mobile-nav" hiddenFrom="sm">
         {navigation.map((item) => (
-          <button key={item.key} className={props.page === item.key ? 'active' : ''} onClick={() => navigate(item.key)}>
-            <span>{item.glyph}</span>
+          <button key={item.key} className={activeNavigationPage === item.key ? 'active' : ''} onClick={() => navigate(item.key)}>
+            <NavigationIcon name={item.icon} />
             {item.label}
           </button>
         ))}
       </Box>
     </AppShell>
+  )
+}
+
+function RoleStatusDot({ active }: { active: boolean }) {
+  return <span className={`role-status-dot ${active ? 'active' : 'inactive'}`} aria-label={active ? 'Active role' : 'Inactive role'} />
+}
+
+function NavigationIcon({ name }: { name: NavigationIconName }) {
+  return (
+    <svg className="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {name === 'home' && <>
+        <path d="M3.5 10.5 12 3.5l8.5 7" />
+        <path d="M5.5 9.5V21h13V9.5" />
+        <path d="M9.5 21v-6h5v6" />
+      </>}
+      {name === 'activity' && <>
+        <rect x="5" y="4" width="14" height="17" rx="2" />
+        <path d="M9 4V2.5h6V4" />
+        <path d="M8.5 9h7M8.5 13h7M8.5 17h4.5" />
+      </>}
+      {name === 'transactions' && <>
+        <path d="M5 7h13" />
+        <path d="m15 4 3 3-3 3" />
+        <path d="M19 17H6" />
+        <path d="m9 14-3 3 3 3" />
+      </>}
+      {name === 'profile' && <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+      </>}
+    </svg>
   )
 }

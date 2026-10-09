@@ -31,6 +31,11 @@
         "internalType": "address",
         "name": "pool",
         "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "dispute",
+        "type": "address"
       }
     ],
     "name": "configureOperators",
@@ -98,6 +103,19 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "markDefaulted",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "MarketOnly",
     "type": "error"
@@ -111,6 +129,19 @@
       }
     ],
     "name": "markFunded",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "markRepaid",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -240,7 +271,20 @@
         "type": "uint256"
       }
     ],
-    "name": "markRepaid",
+    "name": "markOverdue",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "markRepaymentDeposited",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -258,6 +302,12 @@
         "indexed": true,
         "internalType": "address",
         "name": "financingPool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "disputeResolution",
         "type": "address"
       }
     ],
@@ -332,6 +382,19 @@
       }
     ],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "disputeResolution",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

@@ -11,6 +11,21 @@
 						"internalType": "address",
 						"name": "roleRegistryAddress",
 						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "invoiceRegistryAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "financingMarketAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "financingPoolAddress",
+						"type": "address"
 					}
 				],
 				"stateMutability": "nonpayable",
@@ -18,17 +33,22 @@
 			},
 			{
 				"inputs": [],
-				"name": "AdminOnly",
+				"name": "ActiveDisputeExists",
 				"type": "error"
 			},
 			{
 				"inputs": [],
-				"name": "BuyerOnly",
+				"name": "ArbitratorOnly",
 				"type": "error"
 			},
 			{
 				"inputs": [],
-				"name": "DuplicateInvoice",
+				"name": "ConflictOfInterest",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "DisputeNotFound",
 				"type": "error"
 			},
 			{
@@ -38,58 +58,33 @@
 			},
 			{
 				"inputs": [],
-				"name": "InvalidAmount",
-				"type": "error"
-			},
-			{
-				"inputs": [],
-				"name": "InvalidDate",
-				"type": "error"
-			},
-			{
-				"inputs": [],
 				"name": "InvalidHash",
 				"type": "error"
 			},
 			{
-				"inputs": [
-					{
-						"internalType": "enum IInvoiceRegistry.InvoiceStatus",
-						"name": "expected",
-						"type": "uint8"
-					},
-					{
-						"internalType": "enum IInvoiceRegistry.InvoiceStatus",
-						"name": "actual",
-						"type": "uint8"
-					}
-				],
+				"inputs": [],
+				"name": "InvalidRuling",
+				"type": "error"
+			},
+			{
+				"inputs": [],
 				"name": "InvalidStatus",
 				"type": "error"
 			},
 			{
 				"inputs": [],
-				"name": "InvoiceNotFound",
-				"type": "error"
-			},
-			{
-				"inputs": [],
-				"name": "MarketOnly",
-				"type": "error"
-			},
-			{
-				"inputs": [],
-				"name": "MissingRole",
-				"type": "error"
-			},
-			{
-				"inputs": [],
-				"name": "PoolOnly",
+				"name": "UnauthorizedParticipant",
 				"type": "error"
 			},
 			{
 				"anonymous": false,
 				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					},
 					{
 						"indexed": true,
 						"internalType": "uint256",
@@ -99,49 +94,48 @@
 					{
 						"indexed": true,
 						"internalType": "address",
-						"name": "buyer",
+						"name": "openedBy",
 						"type": "address"
-					}
-				],
-				"name": "InvoiceConfirmed",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "buyer",
-						"type": "address"
-					}
-				],
-				"name": "InvoiceRejected",
-				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
 					},
 					{
 						"indexed": false,
-						"internalType": "enum IInvoiceRegistry.InvoiceStatus",
-						"name": "status",
+						"internalType": "bytes32",
+						"name": "reasonHash",
+						"type": "bytes32"
+					}
+				],
+				"name": "DisputeOpened",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "invoiceId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "arbitrator",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "enum DisputeResolution.Ruling",
+						"name": "ruling",
 						"type": "uint8"
 					}
 				],
-				"name": "InvoiceStatusChanged",
+				"name": "DisputeResolved",
 				"type": "event"
 			},
 			{
@@ -150,84 +144,30 @@
 					{
 						"indexed": true,
 						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint256",
 						"name": "invoiceId",
 						"type": "uint256"
 					},
 					{
 						"indexed": true,
+						"internalType": "address",
+						"name": "submitter",
+						"type": "address"
+					},
+					{
+						"indexed": false,
 						"internalType": "bytes32",
-						"name": "invoiceKey",
+						"name": "evidenceHash",
 						"type": "bytes32"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "supplier",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "address",
-						"name": "buyer",
-						"type": "address"
-					},
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "faceValue",
-						"type": "uint256"
 					}
 				],
-				"name": "InvoiceSubmitted",
+				"name": "EvidenceSubmitted",
 				"type": "event"
-			},
-			{
-				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "financingMarket",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "financingPool",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "disputeResolution",
-						"type": "address"
-					}
-				],
-				"name": "OperatorsConfigured",
-				"type": "event"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "market",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "pool",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "dispute",
-						"type": "address"
-					}
-				],
-				"name": "configureOperators",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
 			},
 			{
 				"inputs": [
@@ -237,19 +177,25 @@
 						"type": "uint256"
 					}
 				],
-				"name": "confirmInvoice",
-				"outputs": [],
-				"stateMutability": "nonpayable",
+				"name": "activeDisputeIdByInvoice",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
 				"inputs": [],
-				"name": "disputeResolution",
+				"name": "disputeCount",
 				"outputs": [
 					{
-						"internalType": "address",
+						"internalType": "uint256",
 						"name": "",
-						"type": "address"
+						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -260,7 +206,7 @@
 				"name": "financingMarket",
 				"outputs": [
 					{
-						"internalType": "address",
+						"internalType": "contract IFinancingMarket",
 						"name": "",
 						"type": "address"
 					}
@@ -273,7 +219,146 @@
 				"name": "financingPool",
 				"outputs": [
 					{
-						"internalType": "address",
+						"internalType": "contract IFinancingPool",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					}
+				],
+				"name": "getDispute",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "id",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "invoiceId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "address",
+								"name": "openedBy",
+								"type": "address"
+							},
+							{
+								"internalType": "bytes32",
+								"name": "reasonHash",
+								"type": "bytes32"
+							},
+							{
+								"internalType": "enum DisputeResolution.DisputeStatus",
+								"name": "status",
+								"type": "uint8"
+							},
+							{
+								"internalType": "enum DisputeResolution.Ruling",
+								"name": "ruling",
+								"type": "uint8"
+							},
+							{
+								"internalType": "uint64",
+								"name": "openedAt",
+								"type": "uint64"
+							},
+							{
+								"internalType": "uint64",
+								"name": "resolvedAt",
+								"type": "uint64"
+							},
+							{
+								"internalType": "address",
+								"name": "arbitrator",
+								"type": "address"
+							}
+						],
+						"internalType": "struct DisputeResolution.DisputeView",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "evidenceIndex",
+						"type": "uint256"
+					}
+				],
+				"name": "getEvidence",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "address",
+								"name": "submitter",
+								"type": "address"
+							},
+							{
+								"internalType": "bytes32",
+								"name": "evidenceHash",
+								"type": "bytes32"
+							},
+							{
+								"internalType": "uint64",
+								"name": "submittedAt",
+								"type": "uint64"
+							}
+						],
+						"internalType": "struct DisputeResolution.EvidenceView",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					}
+				],
+				"name": "getEvidenceCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "invoiceRegistry",
+				"outputs": [
+					{
+						"internalType": "contract IInvoiceRegistry",
 						"name": "",
 						"type": "address"
 					}
@@ -287,93 +372,38 @@
 						"internalType": "uint256",
 						"name": "invoiceId",
 						"type": "uint256"
-					}
-				],
-				"name": "getInvoice",
-				"outputs": [
-					{
-						"components": [
-							{
-								"internalType": "uint256",
-								"name": "id",
-								"type": "uint256"
-							},
-							{
-								"internalType": "address",
-								"name": "supplier",
-								"type": "address"
-							},
-							{
-								"internalType": "address",
-								"name": "buyer",
-								"type": "address"
-							},
-							{
-								"internalType": "bytes32",
-								"name": "invoiceNumberHash",
-								"type": "bytes32"
-							},
-							{
-								"internalType": "uint256",
-								"name": "faceValue",
-								"type": "uint256"
-							},
-							{
-								"internalType": "uint64",
-								"name": "issuedAt",
-								"type": "uint64"
-							},
-							{
-								"internalType": "uint64",
-								"name": "dueAt",
-								"type": "uint64"
-							},
-							{
-								"internalType": "bytes32",
-								"name": "documentHash",
-								"type": "bytes32"
-							},
-							{
-								"internalType": "enum IInvoiceRegistry.InvoiceStatus",
-								"name": "status",
-								"type": "uint8"
-							}
-						],
-						"internalType": "struct IInvoiceRegistry.InvoiceView",
-						"name": "",
-						"type": "tuple"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "invoiceCount",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [
+					},
 					{
 						"internalType": "bytes32",
-						"name": "invoiceKey",
+						"name": "reasonHash",
 						"type": "bytes32"
 					}
 				],
-				"name": "invoiceIdByKey",
+				"name": "openDispute",
 				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "disputeId",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
 					{
 						"internalType": "uint256",
 						"name": "invoiceId",
 						"type": "uint256"
+					}
+				],
+				"name": "operationsFrozen",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
 					}
 				],
 				"stateMutability": "view",
@@ -383,102 +413,16 @@
 				"inputs": [
 					{
 						"internalType": "uint256",
-						"name": "invoiceId",
+						"name": "disputeId",
 						"type": "uint256"
-					}
-				],
-				"name": "markDefaulted",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
+					},
 					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
+						"internalType": "enum DisputeResolution.Ruling",
+						"name": "ruling",
+						"type": "uint8"
 					}
 				],
-				"name": "markFinancingOpen",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
-				"name": "markFunded",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
-				"name": "markOverdue",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
-				"name": "markRepaid",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
-				"name": "markRepaymentDeposited",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
-				"name": "rejectInvoice",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
-				"name": "restoreConfirmed",
+				"name": "resolveDispute",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -499,44 +443,18 @@
 			{
 				"inputs": [
 					{
-						"internalType": "address",
-						"name": "buyer",
-						"type": "address"
-					},
-					{
-						"internalType": "bytes32",
-						"name": "invoiceNumberHash",
-						"type": "bytes32"
-					},
-					{
 						"internalType": "uint256",
-						"name": "faceValue",
+						"name": "disputeId",
 						"type": "uint256"
 					},
 					{
-						"internalType": "uint64",
-						"name": "issuedAt",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint64",
-						"name": "dueAt",
-						"type": "uint64"
-					},
-					{
 						"internalType": "bytes32",
-						"name": "documentHash",
+						"name": "evidenceHash",
 						"type": "bytes32"
 					}
 				],
-				"name": "submitInvoice",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "invoiceId",
-						"type": "uint256"
-					}
-				],
+				"name": "submitEvidenceHash",
+				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
 			}
@@ -554,7 +472,7 @@
 	},
 	"settings": {
 		"compilationTarget": {
-			"InvoiceRegistry.sol": "InvoiceRegistry"
+			"DisputeResolution.sol": "DisputeResolution"
 		},
 		"evmVersion": "osaka",
 		"libraries": {},
@@ -568,12 +486,36 @@
 		"remappings": []
 	},
 	"sources": {
-		"InvoiceRegistry.sol": {
-			"keccak256": "0xc081a476023ce66718ac45d2d426e47ff91e90bbe550f7853e7953f64fd8dd2d",
+		"DisputeResolution.sol": {
+			"keccak256": "0x0e03ea231242cadcbd85fb5b51513a11120d38a32d57b6f2be629791a72c766c",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://012277ca11ff0b50c7bfc8acda741d548e55e6dfaff756e9827196b95aca95f0",
-				"dweb:/ipfs/Qmekecf2jJkxbSNVQEttUG5uyedHer16GFY6Nt6dvPGPV3"
+				"bzz-raw://61ac594320b049be33979fd1509a16f17013b2416b3a2bf7236810d4e0391d81",
+				"dweb:/ipfs/QmTtohLf2Mf7Qd7tgDNx57jH5nLz581tKaJxdufLiDC9uY"
+			]
+		},
+		"interfaces/IDisputeResolution.sol": {
+			"keccak256": "0xa9bcf91baae550755549b6ea20458861f3cfac782937e09a4cf8c10a7a7a278e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1f80f69d61c267b89ae35621f6d68758c5bf31dba8a1b4089ac0bd73fd975d57",
+				"dweb:/ipfs/QmcUybkg5WowCoTpxGUkgEG8Ns7sMWxmNnHKCmeo9d71RA"
+			]
+		},
+		"interfaces/IFinancingMarket.sol": {
+			"keccak256": "0x9fa3b5eef609e80147baf9e2d0e2c8d13ae1054a1e86cfb953bf5bf02347a0ed",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://11361be2d9efe6ee3df2f13374f9a0bce25a13641d734216b838ea275226cdc6",
+				"dweb:/ipfs/QmQdQKxJr2tJoxU5ZfJNaEJTkyTEEssKKR1uQzYgzuD2rw"
+			]
+		},
+		"interfaces/IFinancingPool.sol": {
+			"keccak256": "0x872df670053a4ee4293fedf9853f36df84449781210ce6c57a1192a754c2b327",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://2745e0fbb2a6b8196231ed2f8d4eb5182006474dfc390f006181bbd51625eb65",
+				"dweb:/ipfs/QmdNmbPqehpYe8HJafcadDLzLUSsSMxZDxgbDtsZ2cngmW"
 			]
 		},
 		"interfaces/IInvoiceRegistry.sol": {

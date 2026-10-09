@@ -8,6 +8,7 @@ export const contractAddresses: Record<ContractName, string> = {
   invoiceRegistry: import.meta.env.VITE_INVOICE_REGISTRY_ADDRESS ?? '',
   financingMarket: import.meta.env.VITE_FINANCING_MARKET_ADDRESS ?? '',
   financingPool: import.meta.env.VITE_FINANCING_POOL_ADDRESS ?? '',
+  disputeResolution: import.meta.env.VITE_DISPUTE_RESOLUTION_ADDRESS ?? '',
 }
 
 export const contractsConfigured = Object.values(contractAddresses).every(Boolean)

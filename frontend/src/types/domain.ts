@@ -1,8 +1,8 @@
 import type { TransactionResponse } from 'ethers'
 
-export type PageKey = 'home' | 'activity' | 'transactions' | 'profile'
+export type PageKey = 'home' | 'activity' | 'transactions' | 'profile' | 'roles'
 
-export type ActivitySection = 'invoices' | 'financing' | 'roles'
+export type ActivitySection = 'invoices' | 'financing' | 'disputes' | 'audit'
 
 export type UserRole = 'Supplier' | 'Buyer' | 'Funder' | 'Auditor' | 'Arbitrator' | 'Admin'
 
@@ -19,6 +19,7 @@ export type ContractName =
   | 'invoiceRegistry'
   | 'financingMarket'
   | 'financingPool'
+  | 'disputeResolution'
 
 export type TransactionStatus = 'awaiting_signature' | 'confirming' | 'confirmed' | 'failed' | 'cancelled'
 export type SyncStatus = 'verifying' | 'verified' | 'failed'
@@ -36,9 +37,27 @@ export interface TransactionItem {
   error?: string
 }
 
+export type TransactionSubmission = TransactionResponse | {
+  transaction: TransactionResponse
+  metadataId?: string
+}
+
+export interface TransactionSummary {
+  contractAddress: string
+  value: bigint
+  estimatedGas: bigint
+  estimatedNetworkFee: bigint
+  walletBalance: bigint
+}
+
+export interface PreparedTransaction {
+  summary: TransactionSummary
+  send: () => Promise<TransactionSubmission>
+}
+
 export type TransactionRunner = (
   action: string,
   contract: ContractName,
-  send: () => Promise<TransactionResponse>,
+  prepare: () => Promise<PreparedTransaction>,
 ) => Promise<void>
 

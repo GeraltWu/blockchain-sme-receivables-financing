@@ -3,7 +3,7 @@ import type { JsonRpcSigner, Provider } from 'ethers'
 import { contractAddresses, contractsConfigured } from '../config/contracts'
 import { getWritableContract } from '../services/contracts'
 import type { RoleState, UserRole } from '../types/domain'
-import type { FinancingRecord, InvoiceRecord, OfferRecord, RoleRequestRecord } from '../types/protocol'
+import type { DisputeRecord, EvidenceRecord, FinancingRecord, FundingRecord, InvoiceRecord, OfferRecord, RoleRequestRecord } from '../types/protocol'
 import { errorMessage } from './useWallet'
 
 const participantRoles = ['Supplier', 'Buyer', 'Funder', 'Auditor', 'Arbitrator'] as const
@@ -22,7 +22,12 @@ interface ProtocolState {
   roleStates: Record<UserRole, RoleState>
   invoices: InvoiceRecord[]
   financings: FinancingRecord[]
+  fundings: FundingRecord[]
+  platformFeeBps: number
+  gracePeriod: number
+  disputes: DisputeRecord[]
   roleRequests: RoleRequestRecord[]
+  activeRoleAssignments: RoleRequestRecord[]
   roleRequestsError?: string
 }
 
@@ -34,12 +39,17 @@ export function useProtocolData(signer: JsonRpcSigner | undefined, address: stri
     roleStates: emptyRoleStates,
     invoices: [],
     financings: [],
+    fundings: [],
+    platformFeeBps: 0,
+    gracePeriod: 0,
+    disputes: [],
     roleRequests: [],
+    activeRoleAssignments: [],
   })
 
   const load = useCallback(async () => {
     if (!signer || !address || !isSepolia || !contractsConfigured) {
-      setState({ loading: false, roleStates: emptyRoleStates, invoices: [], financings: [], roleRequests: [] })
+      setState({ loading: false, roleStates: emptyRoleStates, invoices: [], financings: [], fundings: [], platformFeeBps: 0, gracePeriod: 0, disputes: [], roleRequests: [], activeRoleAssignments: [] })
       return
     }
 
@@ -48,8 +58,10 @@ export function useProtocolData(signer: JsonRpcSigner | undefined, address: stri
       const roleContract = getWritableContract('roleRegistry', signer)
       const invoiceContract = getWritableContract('invoiceRegistry', signer)
       const marketContract = getWritableContract('financingMarket', signer)
+      const poolContract = getWritableContract('financingPool', signer)
+      const disputeContract = getWritableContract('disputeResolution', signer)
 
-      const [admin, rolePairs, invoiceCountValue, financingCountValue] = await Promise.all([
+      const [admin, rolePairs, invoiceCountValue, financingCountValue, platformFeeBpsValue, gracePeriodValue, disputeCountValue] = await Promise.all([
         roleContract.getFunction('admin')(),
         Promise.all(participantRoles.map(async (_, index) => Promise.all([
           roleContract.getFunction('hasRole')(address, index),
@@ -57,6 +69,9 @@ export function useProtocolData(signer: JsonRpcSigner | undefined, address: stri
         ]))),
         invoiceContract.getFunction('invoiceCount')(),
         marketContract.getFunction('financingCount')(),
+        poolContract.getFunction('platformFeeBps')(),
+        poolContract.getFunction('GRACE_PERIOD')(),
+        disputeContract.getFunction('disputeCount')(),
       ])
 
       const roleStates = { ...emptyRoleStates }
@@ -67,12 +82,16 @@ export function useProtocolData(signer: JsonRpcSigner | undefined, address: stri
       roleStates.Admin = String(admin).toLowerCase() === address.toLowerCase() ? 'active' : 'inactive'
 
       let roleRequests: RoleRequestRecord[] = []
+      let activeRoleAssignments: RoleRequestRecord[] = []
       let roleRequestsError: string | undefined
       if (roleStates.Admin === 'active') {
         try {
           const latestBlock = await signer.provider.getBlockNumber()
           const deploymentBlock = await getDeploymentBlock(signer.provider, contractAddresses.roleRegistry, latestBlock)
-          const requestEvents = await queryRoleRequests(roleContract, deploymentBlock, latestBlock)
+          const [requestEvents, approvedEvents] = await Promise.all([
+            queryRoleEvents(roleContract, 'RoleRequested', deploymentBlock, latestBlock),
+            queryRoleEvents(roleContract, 'RoleApproved', deploymentBlock, latestBlock),
+          ])
           const uniqueRequests = new Map<string, RoleRequestRecord>()
           for (const event of requestEvents) {
             if (!('args' in event)) continue
@@ -95,6 +114,30 @@ export function useProtocolData(signer: JsonRpcSigner | undefined, address: stri
           roleRequests = checkedRequests
             .filter((item) => item.pending)
             .map((item) => item.request)
+            .sort((a, b) => b.blockNumber - a.blockNumber)
+
+          const approvedAssignments = new Map<string, RoleRequestRecord>()
+          for (const event of approvedEvents) {
+            if (!('args' in event)) continue
+            const args = event.args as unknown as Record<string | number, unknown>
+            const account = String(args.account ?? args[0])
+            const roleIndex = Number(args.role ?? args[1])
+            const roleName = participantRoles[roleIndex]
+            if (!roleName) continue
+            approvedAssignments.set(`${account.toLowerCase()}:${roleIndex}`, {
+              account,
+              role: roleName,
+              roleIndex,
+              blockNumber: event.blockNumber,
+            })
+          }
+          const checkedAssignments = await Promise.all(Array.from(approvedAssignments.values()).map(async (assignment) => ({
+            assignment,
+            active: Boolean(await roleContract.getFunction('hasRole')(assignment.account, assignment.roleIndex)),
+          })))
+          activeRoleAssignments = checkedAssignments
+            .filter((item) => item.active)
+            .map((item) => item.assignment)
             .sort((a, b) => b.blockNumber - a.blockNumber)
         } catch (error) {
           roleRequestsError = errorMessage(error)
@@ -149,7 +192,60 @@ export function useProtocolData(signer: JsonRpcSigner | undefined, address: stri
         }
       }))
 
-      setState({ loading: false, roleStates, invoices, financings, roleRequests, roleRequestsError })
+      const fundedFinancings = financings.filter((item) => [3, 4, 7, 8].includes(item.status))
+      const fundingValues = await Promise.all(
+        fundedFinancings.map((item) => poolContract.getFunction('getFunding')(item.id)),
+      )
+      const fundings: FundingRecord[] = fundingValues.map((record) => ({
+        financingId: BigInt(record.financingId ?? record[0]),
+        invoiceId: BigInt(record.invoiceId ?? record[1]),
+        supplier: String(record.supplier ?? record[2]),
+        buyer: String(record.buyer ?? record[3]),
+        funder: String(record.funder ?? record[4]),
+        principal: BigInt(record.principal ?? record[5]),
+        holdback: BigInt(record.holdback ?? record[6]),
+        interest: BigInt(record.interest ?? record[7]),
+        platformFee: BigInt(record.platformFee ?? record[8]),
+        faceValue: BigInt(record.faceValue ?? record[9]),
+        fundedAt: Number(record.fundedAt ?? record[10]),
+        settled: Boolean(record.settled ?? record[11]),
+        overdueAt: Number(record.overdueAt ?? record[12]),
+        repaymentDeposited: Boolean(record.repaymentDeposited ?? record[13]),
+        defaulted: Boolean(record.defaulted ?? record[14]),
+        principalLoss: BigInt(record.principalLoss ?? record[15]),
+        unpaidInterest: BigInt(record.unpaidInterest ?? record[16]),
+      }))
+
+      const disputeCount = Math.min(Number(disputeCountValue), 200)
+      const disputeValues = await Promise.all(
+        Array.from({ length: disputeCount }, (_, index) => disputeContract.getFunction('getDispute')(index + 1)),
+      )
+      const disputes: DisputeRecord[] = await Promise.all(disputeValues.map(async (record) => {
+        const disputeId = BigInt(record.id ?? record[0])
+        const evidenceCount = Number(await disputeContract.getFunction('getEvidenceCount')(disputeId))
+        const evidenceValues = await Promise.all(
+          Array.from({ length: evidenceCount }, (_, index) => disputeContract.getFunction('getEvidence')(disputeId, index)),
+        )
+        const evidence: EvidenceRecord[] = evidenceValues.map((item) => ({
+          submitter: String(item.submitter ?? item[0]),
+          evidenceHash: String(item.evidenceHash ?? item[1]),
+          submittedAt: Number(item.submittedAt ?? item[2]),
+        }))
+        return {
+          id: disputeId,
+          invoiceId: BigInt(record.invoiceId ?? record[1]),
+          openedBy: String(record.openedBy ?? record[2]),
+          reasonHash: String(record.reasonHash ?? record[3]),
+          status: Number(record.status ?? record[4]),
+          ruling: Number(record.ruling ?? record[5]),
+          openedAt: Number(record.openedAt ?? record[6]),
+          resolvedAt: Number(record.resolvedAt ?? record[7]),
+          arbitrator: String(record.arbitrator ?? record[8]),
+          evidence,
+        }
+      }))
+
+      setState({ loading: false, roleStates, invoices, financings, fundings, platformFeeBps: Number(platformFeeBpsValue), gracePeriod: Number(gracePeriodValue), disputes, roleRequests, activeRoleAssignments, roleRequestsError })
     } catch (error) {
       setState((current) => ({ ...current, loading: false, error: errorMessage(error) }))
     }
@@ -184,12 +280,12 @@ async function findDeploymentBlock(provider: Provider, address: string, latestBl
   return low
 }
 
-async function queryRoleRequests(contract: ReturnType<typeof getWritableContract>, fromBlock: number, toBlock: number) {
+async function queryRoleEvents(contract: ReturnType<typeof getWritableContract>, eventName: 'RoleRequested' | 'RoleApproved', fromBlock: number, toBlock: number) {
   const events = []
   const chunkSize = 50_000
   for (let start = fromBlock; start <= toBlock; start += chunkSize) {
     const end = Math.min(start + chunkSize - 1, toBlock)
-    events.push(...await contract.queryFilter(contract.filters.RoleRequested(), start, end))
+    events.push(...await contract.queryFilter(contract.filters[eventName](), start, end))
   }
   return events
 }

@@ -32,6 +32,11 @@
   },
   {
     "inputs": [],
+    "name": "AdminOnly",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "AlreadyFunded",
     "type": "error"
   },
@@ -46,9 +51,66 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "dispute",
+        "type": "address"
+      }
+    ],
+    "name": "configureDisputeResolution",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "confirmDefaultByDispute",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "declareDefault",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "DirectTransferDisabled",
     "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "DisputeOnly",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "finalizeSettlement",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
     "inputs": [],
@@ -111,21 +173,23 @@
   },
   {
     "inputs": [],
+    "name": "OperationsFrozen",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "ReentrancyGuardReentrantCall",
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "invoiceId",
-        "type": "uint256"
-      }
-    ],
-    "name": "repayInvoice",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
+    "inputs": [],
+    "name": "RepaymentNotDeposited",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "TooEarly",
+    "type": "error"
   },
   {
     "inputs": [
@@ -142,6 +206,67 @@
     ],
     "name": "TransferFailed",
     "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "UnauthorizedParticipant",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "disputeResolution",
+        "type": "address"
+      }
+    ],
+    "name": "DisputeResolutionConfigured",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "funder",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "holdbackReturned",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "principalLoss",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "unpaidInterest",
+        "type": "uint256"
+      }
+    ],
+    "name": "FinancingDefaulted",
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -208,6 +333,31 @@
         "type": "uint256"
       },
       {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "overdueAt",
+        "type": "uint64"
+      }
+    ],
+    "name": "InvoiceMarkedOverdue",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      },
+      {
         "indexed": true,
         "internalType": "address",
         "name": "buyer",
@@ -242,8 +392,78 @@
     "type": "event"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "markOverdue",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      }
+    ],
+    "name": "repayInvoice",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "financingId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "invoiceId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "buyer",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "RepaymentDeposited",
+    "type": "event"
+  },
+  {
     "stateMutability": "payable",
     "type": "receive"
+  },
+  {
+    "inputs": [],
+    "name": "disputeResolution",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   },
   {
     "inputs": [
@@ -348,11 +568,49 @@
             "internalType": "bool",
             "name": "settled",
             "type": "bool"
+          },
+          {
+            "internalType": "uint64",
+            "name": "overdueAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bool",
+            "name": "repaymentDeposited",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "defaulted",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "principalLoss",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "unpaidInterest",
+            "type": "uint256"
           }
         ],
         "internalType": "struct FinancingPool.Funding",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "GRACE_PERIOD",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
