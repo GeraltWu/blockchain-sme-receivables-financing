@@ -1,0 +1,66 @@
+@startuml
+title SME Flow - User-interface Navigation
+
+top to bottom direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam linetype ortho
+skinparam nodesep 30
+skinparam ranksep 45
+skinparam defaultTextAlignment center
+skinparam ArrowColor #5B7A91
+skinparam ArrowThickness 1.5
+skinparam rectangle {
+  BorderColor #5B7A91
+  FontColor #183044
+  BackgroundColor #F8FAFC
+}
+hide stereotype
+
+rectangle "Application shell\n\nSepolia network and connected wallet\nApproved-role selector\nDesktop sidebar / mobile bottom navigation" as Shell #EEF4F7
+
+together {
+  rectangle "Home\n\nRole-specific summary\nPending tasks\nRecent transactions" as Home
+
+  rectangle "Activity\n\nRole-dependent operational pages\nWrite action: confirm, MetaMask, result" as Activity #DDEBF2
+
+  rectangle "Transactions\n\nCurrent-session transactions\nVerified history after sign-in\nReceipt and Etherscan links" as Transactions
+
+  rectangle "Profile\n\nWallet, network and balance\nLogin and role status\nRole-management entry" as Profile
+}
+
+together {
+  rectangle "Invoices\n\nRoles: Supplier, Buyer\nCreate an invoice\nConfirm or reject\nView status and invoice number" as Invoices
+
+  rectangle "Financing\n\nRoles: Supplier, Buyer, Funder\nRequest, quote and select\nFund, repay, overdue and default" as Financing
+
+  rectangle "Disputes\n\nRoles: Supplier, Buyer, Funder, Arbitrator\nOpen a case and submit evidence hash\nFreeze operations and apply a ruling" as Disputes
+
+  rectangle "Audit\n\nRole: Auditor\nRead-only status and cash flow\nEvents and explorer links" as Audit
+}
+
+rectangle "Role management\n\nParticipants request roles\nAdmin approves or revokes roles" as Roles #FFF1DE
+
+Shell -down-> Home : Home
+Shell -down-> Activity : Activity
+Shell -down-> Transactions : Transactions
+Shell -down-> Profile : Profile
+
+Activity -down-> Invoices : Invoices tab
+Activity -down-> Financing : Financing tab
+Activity -down-> Disputes : Disputes tab
+Activity -down-> Audit : Audit tab
+
+Profile -down-> Roles : Manage
+
+' Hidden links keep each row in the intended left-to-right order.
+Home -[hidden]right-> Activity
+Activity -[hidden]right-> Transactions
+Transactions -[hidden]right-> Profile
+
+Invoices -[hidden]right-> Financing
+Financing -[hidden]right-> Disputes
+Disputes -[hidden]right-> Audit
+
+@enduml

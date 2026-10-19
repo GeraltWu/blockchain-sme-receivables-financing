@@ -22,18 +22,36 @@ The demo settles with native Sepolia ETH, so MockUSD is not required.
 
 The smart contracts are the source of truth for business state. The frontend reads contract records and events directly through the Sepolia RPC; there is currently no backend business-state or event mirror. SQLite only stores login nonces/sessions, invoice metadata, and verified transaction records. This is sufficient for the short demo, but the Audit page should be opened once before recording so its live event scan is warmed up.
 
-## Run the backend
+## Local setup
+
+The project runs locally as two services: the Flask backend on `http://127.0.0.1:61133` and the Vite frontend on `http://localhost:5173`.
+
+### 1. Start the backend
+
+From the project root, create the Conda environment once:
 
 ```powershell
 conda env create -f backend/environment.yml
 conda activate sme-receivables
 Copy-Item backend/.env.example backend/.env
+```
+
+Set `SEPOLIA_RPC_URL`, `FRONTEND_ORIGIN`, and the five deployed contract addresses in `backend/.env`, then start the backend:
+
+```powershell
 python backend/run.py
 ```
 
-Set `SEPOLIA_RPC_URL` and the five deployed contract addresses in `backend/.env`.
+For later runs, only activate the existing environment before starting:
 
-## Run the frontend
+```powershell
+conda activate sme-receivables
+python backend/run.py
+```
+
+### 2. Start the frontend
+
+Open another PowerShell window and run:
 
 ```powershell
 Set-Location frontend
@@ -42,7 +60,7 @@ npm install
 npm run dev
 ```
 
-Put the same five contract addresses in `frontend/.env`. Vite proxies `/api` to `http://127.0.0.1:5000` during development.
+Put the same five contract addresses in `frontend/.env`. Vite proxies `/api` to `http://127.0.0.1:61133` during local development. Open the URL printed by Vite, normally `http://localhost:5173`.
 
 ## Deploy contracts
 
@@ -53,5 +71,5 @@ See `contracts/README.md` for the Remix deployment order and required post-deplo
 - [`doc/设计文档.md`](doc/设计文档.md): product and business design baseline.
 - [`doc/API设计文档.md`](doc/API设计文档.md): API and data storage as currently implemented.
 - [`doc/UI设计文档.md`](doc/UI设计文档.md): UI behavior as currently implemented.
-- [`doc/移动端用户操作手册.md`](doc/移动端用户操作手册.md): operator guide.
-- [`doc/最短业务链测试操作流程.md`](doc/最短业务链测试操作流程.md): six-minute single-invoice demo procedure.
+- [`doc/用户操作手册.md`](doc/用户操作手册.md): Chinese end-user manual.
+- [`doc/测试操作流程.md`](doc/测试操作流程.md): six-minute single-invoice demo procedure.

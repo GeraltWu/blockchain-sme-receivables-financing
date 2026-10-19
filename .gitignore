@@ -15,3 +15,5 @@ pytest-cache-files-*/
 Thumbs.db
 .idea/
 .vscode/
+
+tmp/
